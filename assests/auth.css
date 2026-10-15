@@ -20,6 +20,15 @@
   border-radius: 24px;
   box-shadow: var(--shadow-3);
 }
+.account-auth__shell--single {
+  width: min(100%, 520px);
+  min-height: 0;
+  grid-template-columns: 1fr;
+}
+.account-auth__shell--single .account-auth__mobile-brand {
+  display: inline-flex;
+  margin-bottom: var(--space-6);
+}
 .account-auth__welcome {
   display: flex;
   flex-direction: column;
@@ -143,6 +152,19 @@
   font-size: var(--text-sm);
   text-align: center;
 }
+.account-auth__form-content > .account-auth__forgot-password {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.account-auth__form-content > .account-auth__forgot-password:hover { color: var(--primary-hover); }
 .account-auth__signup span { color: var(--text); font-weight: 600; }
 .account-auth__footer {
   display: flex;
@@ -155,7 +177,20 @@
   color: var(--text-faint);
   font-size: var(--text-xs);
 }
-
+.account-auth__resend-button{
+  display: inline-block;
+  margin-bottom: var(--space-5);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-auth__resend-button:hover { color: var(--primary-hover); }
 @media (max-width: 599px) {
   .account-auth { padding-inline: var(--space-3); }
   .account-auth__shell { min-height: 0; display: block; border-radius: 18px; }
@@ -169,3 +204,25 @@
 @media (min-width: 600px) {
   .account-auth { padding-inline: var(--space-6); }
 }
+
+.account-auth__reset-content { max-width: 440px; }
+.account-auth__back-link {
+  display: inline-block;
+  margin-bottom: var(--space-5);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-auth__back-link:hover { color: var(--primary-hover); }
+.account-auth__reset-notice {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.account-auth__reset-step { margin-top: var(--space-4); }
