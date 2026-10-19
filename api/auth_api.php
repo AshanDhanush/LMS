@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 $action = $_GET['action'] ?? '';
 
-if (in_array($action, ['login', 'register', 'check_reset_email', 'send_reset_otp', 'verify_reset_otp', 'reset_password'], true)) {
+if (in_array($action, ['login', 'admin_check_email', 'admin_create_user', 'check_reset_email', 'send_reset_otp', 'verify_reset_otp', 'reset_password'], true)) {
     set_error_handler(static function (int $severity, string $message, string $file, int $line): bool {
         if (!(error_reporting() & $severity)) {
             return false;
@@ -103,12 +103,51 @@ try {
 
 switch ($action) {
     case 'register':
+        send_json(403, ['status' => 'error', 'message' => 'Public registration is disabled. Contact an administrator to create an account.']);
+
+    case 'admin_check_email':
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Allow: POST');
-            send_json(405, ['status' => 'error', 'message' => 'This endpoint only accepts sign-up requests.']);
+            send_json(405, ['status' => 'error', 'message' => 'This endpoint only accepts email checks.']);
         }
 
         try {
+            $admin = currentUser();
+            if ($admin === null || $admin['role'] !== 'admin') {
+                send_json(403, ['status' => 'error', 'message' => 'Only administrators can check account emails.']);
+            }
+
+            $input = get_json_input();
+            $email = trim(is_string($input['email'] ?? null) ? $input['email'] : '');
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
+                send_json(400, ['status' => 'error', 'message' => 'Enter a valid email address.', 'field' => 'email']);
+            }
+
+            $findEmail = db()->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
+            $findEmail->execute(['email' => $email]);
+            $available = $findEmail->fetchColumn() === false;
+            send_json(200, [
+                'status' => 'success',
+                'available' => $available,
+                'message' => $available ? '' : 'An account with this email address already exists.',
+            ]);
+        } catch (Throwable $error) {
+            error_log('Admin email check failed: ' . $error->getMessage());
+            send_json(500, ['status' => 'error', 'message' => 'The email address could not be checked. Please try again.']);
+        }
+
+    case 'admin_create_user':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Allow: POST');
+            send_json(405, ['status' => 'error', 'message' => 'This endpoint only accepts user creation requests.']);
+        }
+
+        try {
+            $admin = currentUser();
+            if ($admin === null || $admin['role'] !== 'admin') {
+                send_json(403, ['status' => 'error', 'message' => 'Only administrators can create user accounts.']);
+            }
+
             $input = get_json_input();
             $name = trim(is_string($input['name'] ?? null) ? $input['name'] : '');
             $email = trim(is_string($input['email'] ?? null) ? $input['email'] : '');
@@ -116,49 +155,57 @@ switch ($action) {
             $passwordConfirmation = is_string($input['password_confirmation'] ?? null)
                 ? $input['password_confirmation']
                 : '';
+            $role = is_string($input['role'] ?? null) ? $input['role'] : '';
 
             if (preg_match('/\A.{1,100}\z/us', $name) !== 1) {
-                send_json(400, ['status' => 'error', 'message' => 'Enter your name (up to 100 characters).']);
+                send_json(400, [
+                    'status' => 'error',
+                    'message' => 'Enter a name (up to 100 characters).',
+                    'field' => 'name',
+                ]);
             }
-
             if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
                 send_json(400, ['status' => 'error', 'message' => 'Enter a valid email address.']);
             }
-
             if (strlen($password) < 8 || strlen($password) > 72) {
-                send_json(400, ['status' => 'error', 'message' => 'Your password must be between 8 and 72 characters.']);
+                send_json(400, ['status' => 'error', 'message' => 'Password must be between 8 and 72 characters.']);
             }
-
             if ($password !== $passwordConfirmation) {
                 send_json(400, ['status' => 'error', 'message' => 'The passwords do not match.']);
+            }
+            if (!in_array($role, ['student', 'instructor', 'admin'], true)) {
+                send_json(400, ['status' => 'error', 'message' => 'Choose a valid user role.']);
             }
 
             $insertUser = db()->prepare(
                 'INSERT INTO users (name, email, password_hash, role, status, email_verified_at)
-                 VALUES (:name, :email, :password_hash, :role, :status, CURRENT_TIMESTAMP)'
+                 VALUES (:name, :email, :password_hash, :role, \'active\', CURRENT_TIMESTAMP)'
             );
             $insertUser->execute([
                 'name' => $name,
                 'email' => $email,
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-                'role' => 'student',
-                'status' => 'active',
+                'role' => $role,
             ]);
 
             send_json(201, [
                 'status' => 'success',
-                'message' => 'Your account has been created. You can now sign in.',
-                'redirect' => 'index.php',
+                'message' => 'The user account was created.',
+                'redirect' => url('admin/users?created=1'),
             ]);
         } catch (PDOException $error) {
             if ($error->getCode() === '23000') {
-                send_json(409, ['status' => 'error', 'message' => 'An account with this email address already exists.']);
+                send_json(409, [
+                    'status' => 'error',
+                    'message' => 'An account with this email address already exists.',
+                    'field' => 'email',
+                ]);
             }
 
-            error_log('Auth API registration failed: ' . $error->getMessage());
+            error_log('Admin user creation failed: ' . $error->getMessage());
             send_json(500, ['status' => 'error', 'message' => 'Something went wrong on our side. Please try again.']);
         } catch (Throwable $error) {
-            error_log('Auth API registration failed: ' . $error->getMessage());
+            error_log('Admin user creation failed: ' . $error->getMessage());
             send_json(500, ['status' => 'error', 'message' => 'Something went wrong on our side. Please try again.']);
         }
 
@@ -170,11 +217,13 @@ switch ($action) {
 
         try {
             $input = get_json_input();
-            $email = trim(is_string($input['email'] ?? null) ? $input['email'] : '');
+            $identifier = trim(is_string($input['identifier'] ?? null)
+                ? $input['identifier']
+                : (is_string($input['email'] ?? null) ? $input['email'] : ''));
             $password = is_string($input['password'] ?? null) ? $input['password'] : '';
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190 || $password === '' || strlen($password) > 4096) {
-                send_json(400, ['status' => 'error', 'message' => 'Enter a valid email address and password.']);
+            if ($identifier === '' || strlen($identifier) > 190 || $password === '' || strlen($password) > 4096) {
+                send_json(400, ['status' => 'error', 'message' => 'Enter your username or email address and password.']);
             }
 
             $pdo = db();
@@ -182,22 +231,29 @@ switch ($action) {
             $resetExpiredLock = $pdo->prepare(
                 'UPDATE users
                  SET failed_logins = 0, locked_until = NULL
-                 WHERE email = :email AND locked_until IS NOT NULL AND locked_until <= NOW()'
+                 WHERE (email = :identifier_email OR username = :identifier_username)
+                   AND locked_until IS NOT NULL AND locked_until <= NOW()'
             );
-            $resetExpiredLock->execute(['email' => $email]);
+            $resetExpiredLock->execute([
+                'identifier_email' => $identifier,
+                'identifier_username' => $identifier,
+            ]);
 
             $findUser = $pdo->prepare(
                 'SELECT id, name, email, password_hash, role, status, email_verified_at,
                         (locked_until IS NOT NULL AND locked_until > NOW()) AS is_locked
                  FROM users
-                 WHERE email = :email
+                 WHERE email = :identifier_email OR username = :identifier_username
                  LIMIT 1'
             );
-            $findUser->execute(['email' => $email]);
+            $findUser->execute([
+                'identifier_email' => $identifier,
+                'identifier_username' => $identifier,
+            ]);
             $user = $findUser->fetch();
 
             if (!$user || $user['status'] !== 'active') {
-                send_json(401, ['status' => 'error', 'message' => 'Email or password is incorrect.']);
+                send_json(401, ['status' => 'error', 'message' => 'Username/email or password is incorrect.']);
             }
 
             if ((int) $user['is_locked'] === 1) {
@@ -212,7 +268,7 @@ switch ($action) {
                      WHERE id = :id'
                 );
                 $recordFailure->execute(['id' => $user['id']]);
-                send_json(401, ['status' => 'error', 'message' => 'Email or password is incorrect.']);
+                send_json(401, ['status' => 'error', 'message' => 'Username/email or password is incorrect.']);
             }
 
             $clearFailures = $pdo->prepare(

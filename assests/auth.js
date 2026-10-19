@@ -2,14 +2,120 @@ const authForm = document.querySelector('[data-auth-action]');
 
 if (authForm) {
   const action = authForm.dataset.authAction;
+  const isRegistration = action === 'register' || action === 'admin_create_user';
+  const endpoint = authForm.dataset.authEndpoint || 'api/auth_api.php';
   const status = document.getElementById(authForm.dataset.statusId);
   const submitButton = authForm.querySelector('button[type="submit"]');
   const submitLabel = submitButton.querySelector('span');
+  const emailInput = isRegistration ? authForm.elements.email : null;
+  const emailError = emailInput ? document.getElementById(emailInput.getAttribute('aria-describedby')) : null;
+  let emailCheckRequest = 0;
+  const nameInput = action === 'admin_create_user' ? authForm.elements.name : null;
+  const nameError = nameInput ? document.getElementById(nameInput.getAttribute('aria-describedby')) : null;
+
+  function validateFullname() {
+    if (!nameInput || !nameError) return true;
+
+    const name = nameInput.value.trim();
+    const namePattern = /^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u;
+
+    let message = '';
+    if (name === '') {
+      message = 'Full name is required.';
+    } else if (name.length > 100) {
+      message = 'Full name must be 100 characters or less.';
+    } else if (!namePattern.test(name)) {
+      message = 'Full name can only contain letters and spaces.';
+    }
+
+    nameError.textContent = message;
+    nameError.hidden = message === '';
+    nameInput.setAttribute('aria-invalid', String(message !== ''));
+
+    return message === '';
+  }
+  function showEmailError(message) {
+    if (!emailInput || !emailError) return;
+    emailError.textContent = message;
+    emailError.hidden = message === '';
+    emailInput.setAttribute('aria-invalid', String(message !== ''));
+  }
+
+  function emailFormatError() {
+    if (emailInput.validity.valueMissing) return 'Enter an email address.';
+    if (emailInput.validity.typeMismatch || emailInput.validity.tooLong) return 'Enter a valid email address.';
+    return '';
+  }
+
+  async function checkEmailAvailability() {
+    if (!emailInput || action !== 'admin_create_user') return true;
+
+    const formatError = emailFormatError();
+    if (formatError) {
+      showEmailError(formatError);
+      return false;
+    }
+
+    const requestId = ++emailCheckRequest;
+    const value = emailInput.value.trim();
+    try {
+      const response = await fetch(`${endpoint}?action=admin_check_email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: value }),
+      });
+      const result = await response.json();
+
+      if (requestId !== emailCheckRequest || value !== emailInput.value.trim()) return false;
+      if (!response.ok || result.status !== 'success') {
+        showEmailError(result.message || 'The email address could not be checked. Please try again.');
+        return false;
+      }
+      showEmailError(result.available ? '' : result.message);
+      return result.available === true;
+    } catch (error) {
+      if (requestId === emailCheckRequest && value === emailInput.value.trim()) {
+        showEmailError('Could not check this email address. Please try again.');
+      }
+      return false;
+    }
+  }
+
+  if (emailInput && action === 'admin_create_user') {
+    emailInput.addEventListener('input', () => {
+      emailCheckRequest += 1;
+      showEmailError(emailFormatError());
+    });
+
+    if (nameInput) {
+      nameInput.addEventListener('input', () => {
+        validateFullname();
+      });
+      nameInput.addEventListener('blur', () => {
+        validateFullname();
+      });
+    }
+    emailInput.addEventListener('blur', () => {
+      if (!emailFormatError() && emailInput.value.trim() !== '') checkEmailAvailability();
+    });
+  }
 
   authForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (nameInput && !validateFullname()) {
+      nameInput.focus();
+      return;
+    }
 
-    if (action === 'register' && authForm.elements.password.value !== authForm.elements.password_confirmation.value) {
+    if (isRegistration && emailInput && action === 'admin_create_user' && !(await checkEmailAvailability())) {
+      emailInput.focus();
+      return;
+    }
+
+    if (!authForm.reportValidity()) return;
+
+    if (isRegistration && authForm.elements.password.value !== authForm.elements.password_confirmation.value) {
       status.dataset.state = 'error';
       status.textContent = 'The passwords do not match.';
       status.hidden = false;
@@ -20,12 +126,12 @@ if (authForm) {
     status.textContent = '';
     submitButton.disabled = true;
     submitButton.setAttribute('aria-busy', 'true');
-    submitLabel.textContent = action === 'register' ? 'Creating account…' : 'Signing in…';
+    submitLabel.textContent = isRegistration ? 'Creating account…' : 'Signing in…';
 
     const payload = Object.fromEntries(new FormData(authForm).entries());
 
     try {
-      const response = await fetch(`api/auth_api.php?action=${encodeURIComponent(action)}`, {
+      const response = await fetch(`${endpoint}?action=${encodeURIComponent(action)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -34,6 +140,18 @@ if (authForm) {
       const result = await response.json();
 
       if (!response.ok || result.status !== 'success') {
+        if (result.field === 'email' && emailError) {
+          showEmailError(result.message || 'Check this email address.');
+          emailInput.focus();
+          return;
+        }
+        if (result.field === 'name' && nameError) {
+          nameError.textContent = result.message || 'Check the full name.';
+          nameError.hidden = false;
+          nameInput.setAttribute('aria-invalid', 'true');
+          nameInput.focus();
+          return;
+        }
         throw new Error(result.message || 'The request failed. Please try again.');
       }
 
@@ -50,7 +168,7 @@ if (authForm) {
     } finally {
       submitButton.disabled = false;
       submitButton.removeAttribute('aria-busy');
-      submitLabel.textContent = action === 'register' ? 'Create account' : 'Sign in';
+      submitLabel.textContent = isRegistration ? 'Create account' : 'Sign in';
     }
   });
 }

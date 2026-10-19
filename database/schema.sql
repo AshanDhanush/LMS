@@ -5,6 +5,7 @@
 --  How to use:
 --    phpMyAdmin -> Import -> choose this file
 --    or: mysql -u root -p < database/schema.sql
+--    Existing databases: run database/migrations/20261019_add_usernames.sql once.
 --
 --  What was merged (compared with the 24-table version):
 --    email_verifications + password_resets  -> user_tokens
@@ -35,6 +36,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 CREATE TABLE IF NOT EXISTS users (
   id                    INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name                  VARCHAR(100)  NOT NULL,
+  username              VARCHAR(64)  NULL,
   email                 VARCHAR(190)  NOT NULL,
   password_hash         VARCHAR(255)  NOT NULL,
   role                  ENUM('admin','instructor','student') NOT NULL DEFAULT 'student',
@@ -48,6 +50,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
+  UNIQUE KEY uq_users_username (username),
   UNIQUE KEY uq_users_email (email),
   KEY idx_users_role_status (role, status),
   KEY idx_users_points (points)                                  -- leaderboard

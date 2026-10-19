@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# Keep API endpoints addressable as PHP scripts for JSON requests.
+RewriteRule ^api/ - [L]
+
+# Redirect browser page requests to extensionless URLs.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{THE_REQUEST} \s(/[^?\s]+)\.php(?:[?\s]) [NC]
+RewriteRule ^(.+)\.php$ %{REQUEST_SCHEME}://%{HTTP_HOST}%1 [R=301,L,NE]
+
+# Resolve extensionless requests to their PHP page when no file or directory exists.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L]

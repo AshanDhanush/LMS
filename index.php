@@ -61,8 +61,8 @@ declare(strict_types=1);
 
                     <form class="account-auth__form" data-auth-action="login" data-status-id="login-status">
                         <div class="form-group">
-                            <label class="form-label" for="email">Email address</label>
-                            <input class="form-control" id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+                            <label class="form-label" for="identifier">Username or email address</label>
+                            <input class="form-control" id="identifier" name="identifier" type="text" maxlength="190" placeholder="Username or you@example.com" autocomplete="username" required>
                         </div>
 
                         <div class="form-group">
