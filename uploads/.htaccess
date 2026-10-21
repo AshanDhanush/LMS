@@ -1,0 +1,7 @@
+# Disable directory listing
+Options -Indexes
+
+# Prevent PHP execution in uploaded files
+<FilesMatch "\.(php[0-9]?|phtml|phar)$">
+    Require all denied
+</FilesMatch>

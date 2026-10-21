@@ -1,5 +1,12 @@
 <?php
 declare(strict_types=1);
+
+require_once __DIR__ . '/includes/config.php';
+
+$user = currentUser();
+if ($user !== null) {
+    redirect(dashboardPath($user['role']));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -8,8 +15,8 @@ declare(strict_types=1);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sign in to your learning account.">
     <title>Sign in | Learning Hub</title>
-    <link rel="stylesheet" href="assests/theme.css">
-    <link rel="stylesheet" href="assests/auth.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(url('assests/css/theme.css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(url('assests/css/auth.css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
 </head>
 <body>
     <main class="account-auth">

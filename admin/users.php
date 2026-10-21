@@ -55,15 +55,13 @@ function readUserImportCsv(string $path): array
         }
 
         $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
-        $headerMap = [];
-        foreach ($headers as $index => $header) {
-            $headerMap[strtolower(trim((string) $header))] = $index;
-        }
-
-        foreach (['first name', 'last name', 'email', 'role'] as $requiredHeader) {
-            if (!array_key_exists($requiredHeader, $headerMap)) {
-                throw new RuntimeException('CSV headings must include First name, Last name, email, and role.');
-            }
+        $expectedHeaders = ['first name', 'last name', 'email', 'role'];
+        $actualHeaders = array_map(
+            static fn($header): string => strtolower(trim((string) $header)),
+            $headers
+        );
+        if ($actualHeaders !== $expectedHeaders) {
+            throw new RuntimeException('The CSV header must contain exactly these columns in order: First name, Last name, email, role.');
         }
 
         $rows = [];
@@ -75,14 +73,24 @@ function readUserImportCsv(string $path): array
                 continue;
             }
 
+            if (count($columns) !== count($expectedHeaders)) {
+                throw new RuntimeException('CSV row ' . $csvRow . ' must contain exactly four columns.');
+            }
+
+            foreach ($columns as $column) {
+                if (!mb_check_encoding((string) $column, 'UTF-8')) {
+                    throw new RuntimeException('CSV row ' . $csvRow . ' contains text that is not valid UTF-8.');
+                }
+            }
+
             if (count($rows) >= 500) {
                 throw new RuntimeException('A CSV file can contain no more than 500 users.');
             }
 
-            $firstName = trim((string) ($columns[$headerMap['first name']] ?? ''));
-            $lastName = trim((string) ($columns[$headerMap['last name']] ?? ''));
-            $email = trim((string) ($columns[$headerMap['email']] ?? ''));
-            $role = strtolower(trim((string) ($columns[$headerMap['role']] ?? '')));
+            $firstName = trim((string) $columns[0]);
+            $lastName = trim((string) $columns[1]);
+            $email = trim((string) $columns[2]);
+            $role = strtolower(trim((string) $columns[3]));
             $name = trim($firstName . ' ' . $lastName);
 
             if ($firstName === '' || $lastName === '' || mb_strlen($name, 'UTF-8') > 100) {
@@ -173,6 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
         };
     } elseif (!is_uploaded_file((string) $upload['tmp_name'])) {
         $importError = 'The uploaded CSV file is not valid.';
+    } elseif (strtolower(pathinfo((string) ($upload['name'] ?? ''), PATHINFO_EXTENSION)) !== 'csv') {
+        $importError = 'Upload a CSV file with a .csv extension.';
     } elseif ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
         $importError = 'The CSV file must be no larger than 2 MB.';
     } else {
@@ -315,13 +325,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     }
 }
 
+$userSearch = trim(is_string($_GET['q'] ?? null) ? $_GET['q'] : '');
+$userSearch = mb_substr($userSearch, 0, 100, 'UTF-8');
+
 try {
-    $users = db()->query(
-        'SELECT id, name, username, email, role, status, created_at
-         FROM users
-         ORDER BY created_at DESC, id DESC
-         LIMIT 100'
-    )->fetchAll();
+    $userQuery = 'SELECT id, name, username, email, role, status, created_at FROM users';
+    if ($userSearch !== '') {
+        $userQuery .= ' WHERE name LIKE :name OR email LIKE :email';
+    }
+    $userQuery .= ' ORDER BY created_at DESC, id DESC LIMIT 100';
+    $loadUsers = db()->prepare($userQuery);
+    $searchTerm = '%' . $userSearch . '%';
+    $loadUsers->execute($userSearch !== '' ? ['name' => $searchTerm, 'email' => $searchTerm] : []);
+    $users = $loadUsers->fetchAll();
 } catch (Throwable $error) {
     error_log('Admin users page failed to load: ' . $error->getMessage());
     $usersError = true;
@@ -352,61 +368,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users | Learning Hub Admin</title>
-    <link rel="stylesheet" href="<?= h(url('assests/theme.css')) ?>">
-    <link rel="stylesheet" href="<?= h(url('assests/dashboard.css')) ?>">
-</head>
-<body class="admin">
-    <a class="admin-skip" href="#main">Skip to content</a>
-
-    <header class="admin-topbar">
-        <div class="admin-topbar__inner">
-            <button class="admin-menu-toggle" type="button" aria-label="Open navigation" aria-controls="admin-sidebar" aria-expanded="false" data-sidebar-toggle>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-            <a class="admin-brand" href="<?= h(url('admin/dashboard')) ?>">
-                <span class="admin-brand__mark" aria-hidden="true">L</span>
-                <span>Learning Hub</span>
-            </a>
-            <span class="admin-chip admin-chip--primary">Admin</span>
-            <span class="admin-topbar__spacer"></span>
-            <span class="admin-notification" role="img" aria-label="Notifications">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
-            </span>
-            <a class="admin-user" href="<?= h(url('profile')) ?>" aria-label="View profile for <?= h($user['name']) ?>">
-                <span class="admin-user__avatar" aria-hidden="true"><?= h(initials($user['name'])) ?></span>
-                <span class="admin-user__name"><?= h($user['name']) ?></span>
-            </a>
-            <form action="<?= h(url('admin/logout.php')) ?>" method="post">
-                <button class="admin-btn" type="submit">Sign out</button>
-            </form>
-        </div>
-    </header>
-
-    <div class="admin-shell">
-        <aside class="admin-sidebar" id="admin-sidebar" aria-label="Admin navigation">
-            <nav class="admin-sidebar__nav">
-                <a class="admin-sidebar__link" href="<?= h(url('admin/dashboard')) ?>">
-                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
-                    <span>Home</span>
-                </a>
-                <a class="admin-sidebar__link admin-sidebar__link--active" href="<?= h(url('admin/users')) ?>" aria-current="page">
-                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Users</span>
-                </a>
-                <form action="<?= h(url('admin/logout.php')) ?>" method="post">
-                    <button class="admin-sidebar__link admin-sidebar__logout" type="submit">
-                        <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
-                        <span>Logout</span>
-                    </button>
-                </form>
-            </nav>
-        </aside>
+<?php
+$adminPageTitle = 'Users | Learning Hub Admin';
+$adminActivePage = 'users';
+require __DIR__ . '/header.php';
+?>
 
         <main class="admin-main" id="main">
             <div class="admin-container">
@@ -500,13 +466,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
                 <section class="admin-card admin-users-list" aria-labelledby="users-list-title">
                     <div class="admin-card__head">
-                        <h2 id="users-list-title">Existing users</h2>
-                        <span class="admin-card__note">Newest 100</span>
+                        <h2 id="users-list-title"><?= $userSearch !== '' ? 'Search results' : 'Existing users' ?></h2>
+                        <span class="admin-card__note"><?= $userSearch !== '' ? 'Matches for "' . h($userSearch) . '" (up to 100)' : 'Newest 100' ?></span>
                     </div>
                     <?php if ($usersError): ?>
                         <p class="admin-alert" role="alert">Users could not be loaded. Please reload the page.</p>
                     <?php elseif (!$users): ?>
-                        <p class="admin-empty">No users yet.</p>
+                        <p class="admin-empty"><?= $userSearch !== '' ? 'No users match that name.' : 'No users yet.' ?></p>
                     <?php else: ?>
                         <div class="admin-table-wrap">
                             <table class="admin-table">

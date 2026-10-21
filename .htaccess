@@ -8,6 +8,9 @@ RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
 RewriteCond %{THE_REQUEST} \s(/[^?\s]+)\.php(?:[?\s]) [NC]
 RewriteRule ^(.+)\.php$ %{REQUEST_SCHEME}://%{HTTP_HOST}%1 [R=301,L,NE]
 
+# Keep the admin user profile on its clean URL.
+RewriteRule ^admin/user-profile/?$ admin/user-profile.php [L]
+
 # Resolve extensionless requests to their PHP page when no file or directory exists.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
