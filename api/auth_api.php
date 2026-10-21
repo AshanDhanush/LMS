@@ -102,6 +102,28 @@ try {
 }
 
 switch ($action) {
+    case 'logout':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Allow: POST');
+            send_json(405, ['status' => 'error', 'message' => 'This endpoint only accepts sign-out requests.']);
+        }
+
+        setcookie(JWT_COOKIE, '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => !IS_LOCAL,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+
+        $contentType = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));
+        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+        if ($contentType === 'application/json' || str_contains($accept, 'application/json')) {
+            send_json(200, ['status' => 'success', 'redirect' => url('')]);
+        }
+
+        redirect('');
+
     case 'register':
         send_json(403, ['status' => 'error', 'message' => 'Public registration is disabled. Contact an administrator to create an account.']);
 

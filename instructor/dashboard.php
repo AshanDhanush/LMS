@@ -77,7 +77,7 @@ function ico(string $name): string
    ========================================================================== */
 $menu = [
     ['label' => 'Dashboard',              'icon' => 'home',      'href' => 'instructor/dashboard.php', 'current' => true],
-    ['label' => 'My courses',             'icon' => 'book',      'href' => 'instructor/dashboard.php#courses-title'],
+    ['label' => 'My courses',             'icon' => 'book',      'href' => 'instructor/my_courses.php'],
     ['label' => 'Assignments & grading',  'icon' => 'clipboard', 'href' => 'instructor/dashboard.php#sub-title', 'badge' => true],
     ['label' => 'Students & cohorts',     'icon' => 'users',     'href' => 'instructor/dashboard.php#enroll-title'],
     ['label' => 'Analytics & reports',    'icon' => 'chart',     'href' => 'instructor/dashboard.php#teaching-stats'],
@@ -240,7 +240,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
     <div class="ins-layout">
 
         <!-- ========== Sidebar ========== -->
-        <aside class="ins-sidebar">
+        <aside class="ins-sidebar" id="instructor-sidebar" aria-label="Instructor navigation">
             <a class="ins-brand" href="<?= h(url('instructor/dashboard.php')) ?>">
                 <span class="ins-brand__mark" aria-hidden="true">L</span>
                 <span class="ins-brand__text"><strong>Learning Hub</strong><small>LMS Academy</small></span>
@@ -272,6 +272,9 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
 
             <!-- ========== Top bar ========== -->
             <header class="ins-topbar">
+                <button class="ins-menu-toggle" type="button" aria-label="Open navigation" aria-controls="instructor-sidebar" aria-expanded="false" data-instructor-sidebar-toggle>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
                 <span class="ins-topbar__title">Dashboard</span>
                 <span class="ins-topbar__spacer"></span>
                 <a class="ins-user" href="<?= h(url('profile')) ?>" aria-label="View profile for <?= h($user['name']) ?>">
@@ -558,6 +561,6 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
         </div>
     </div>
 
-    <script src="<?= h(url('assests/instructor.js')) ?>" defer></script>
+    <script src="<?= h(url('assests/instructor_dashboard.js')) ?>" defer></script>
 </body>
 </html>

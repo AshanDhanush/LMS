@@ -2,6 +2,49 @@
 // 1. Sign out: asks the server to remove the login cookie, then opens the login page.
 // 2. Courses overview: filter by name and by status without reloading the page.
 
+const instructorSidebarToggle = document.querySelector('[data-instructor-sidebar-toggle]');
+const instructorLayout = document.querySelector('.ins-layout');
+const instructorSidebar = document.getElementById('instructor-sidebar');
+
+if (
+  instructorSidebarToggle instanceof HTMLButtonElement &&
+  instructorLayout &&
+  instructorSidebar
+) {
+  const desktopNavigation = window.matchMedia('(min-width: 900px)');
+
+  function setInstructorSidebarOpen(isOpen) {
+    instructorLayout.classList.toggle('is-sidebar-open', isOpen);
+    instructorSidebarToggle.setAttribute('aria-expanded', String(isOpen));
+    instructorSidebarToggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+  }
+
+  instructorSidebarToggle.addEventListener('click', () => {
+    setInstructorSidebarOpen(!instructorLayout.classList.contains('is-sidebar-open'));
+  });
+
+  instructorLayout.addEventListener('click', (event) => {
+    if (event.target === instructorLayout && instructorLayout.classList.contains('is-sidebar-open')) {
+      setInstructorSidebarOpen(false);
+    }
+  });
+
+  instructorSidebar.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => setInstructorSidebarOpen(false));
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && instructorLayout.classList.contains('is-sidebar-open')) {
+      setInstructorSidebarOpen(false);
+      instructorSidebarToggle.focus();
+    }
+  });
+
+  desktopNavigation.addEventListener('change', (event) => {
+    if (event.matches) setInstructorSidebarOpen(false);
+  });
+}
+
 const signOutButton = document.querySelector('#signOut');
 
 if (signOutButton) {

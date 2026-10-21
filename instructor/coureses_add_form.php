@@ -66,7 +66,7 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
 
 <div class="ins-layout">
 
-    <aside class="ins-sidebar">
+    <aside class="ins-sidebar" id="instructor-sidebar" aria-label="Instructor navigation">
         <a class="ins-brand" href="<?= courseFormEscape(url('instructor/dashboard')) ?>">
             <span class="ins-brand__mark" aria-hidden="true">L</span>
 
@@ -108,6 +108,9 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
     <div class="ins-body">
 
         <header class="ins-topbar">
+            <button class="ins-menu-toggle" type="button" aria-label="Open navigation" aria-controls="instructor-sidebar" aria-expanded="false" data-instructor-sidebar-toggle>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
             <span class="ins-topbar__title">Create a course</span>
             <span class="ins-topbar__spacer"></span>
 
@@ -335,7 +338,7 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
     ) ?>;
 </script>
 
-<script src="<?= courseFormEscape(url('assests/instructor.js')) ?>" defer></script>
+<script src="<?= courseFormEscape(url('assests/instructor_dashboard.js')) ?>" defer></script>
 
 </body>
 </html>
