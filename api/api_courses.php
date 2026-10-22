@@ -17,7 +17,30 @@ function courseApiResponse(int $httpCode, array $data): never
     exit;
 }
 
-// This endpoint creates courses only.
+function courseApiDeleteThumbnail(?string $thumbnailPath): void
+{
+    $prefix = 'uploads/thumbnails/';
+
+    if (
+        $thumbnailPath === null ||
+        !str_starts_with($thumbnailPath, $prefix)
+    ) {
+        return;
+    }
+
+    $filename = substr($thumbnailPath, strlen($prefix));
+    if (preg_match('/\A[a-f0-9]{32}\.(?:jpg|png|webp)\z/', $filename) !== 1) {
+        return;
+    }
+
+    $absolutePath = dirname(__DIR__) . '/uploads/thumbnails/' . $filename;
+    if (is_file($absolutePath) && !is_link($absolutePath)) {
+        if (!unlink($absolutePath)) {
+            error_log('Course API could not remove the replaced thumbnail.');
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
 
@@ -27,20 +50,32 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ]);
 }
 
+// Existing create forms omit the action field.
+$action = is_string($_POST['action'] ?? null)
+    ? trim($_POST['action'])
+    : 'create';
+
+if (!in_array($action, ['create', 'update','delete'], true)) {
+    courseApiResponse(400, [
+        'status' => 'error',
+        'message' => 'Invalid course action.'
+    ]);
+}
+
 // Check the authenticated user.
 $user = currentUser();
 
 if ($user === null) {
     courseApiResponse(401, [
         'status' => 'error',
-        'message' => 'Please sign in to create a course.'
+        'message' => 'Please sign in to manage courses.'
     ]);
 }
 
 if (($user['role'] ?? '') !== 'instructor') {
     courseApiResponse(403, [
         'status' => 'error',
-        'message' => 'Only instructors can create courses.'
+        'message' => 'Only instructors can manage courses.'
     ]);
 }
 
@@ -63,6 +98,100 @@ if (
         'message' => 'Your session could not be verified. Reload the page and try again.'
     ]);
 }
+
+/*
+|--------------------------------------------------------------------------
+| Delete a course
+|--------------------------------------------------------------------------
+*/
+
+if ($action === 'delete') {
+    $validatedCourseId = filter_var(
+        $_POST['course_id'] ?? null,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+
+    if ($validatedCourseId === false) {
+        courseApiResponse(422, [
+            'status' => 'error',
+            'message' => 'A valid course ID is required.'
+        ]);
+    }
+
+    $courseIdToDelete = (int) $validatedCourseId;
+    $thumbnailToDelete = null;
+
+    try {
+        $pdo = db();
+
+        // Confirm that the course belongs to this instructor.
+        $findCourse = $pdo->prepare(
+            'SELECT id, thumbnail
+             FROM courses
+             WHERE id = :course_id
+               AND instructor_id = :instructor_id
+             LIMIT 1'
+        );
+
+        $findCourse->execute([
+            'course_id' => $courseIdToDelete,
+            'instructor_id' => (int) $user['id'],
+        ]);
+
+        $course = $findCourse->fetch(PDO::FETCH_ASSOC);
+
+        if (!$course) {
+            courseApiResponse(404, [
+                'status' => 'error',
+                'message' => 'Course not found or you do not have permission to delete it.'
+            ]);
+        }
+
+        // Save the thumbnail path for cleanup after the database deletion.
+        $thumbnailToDelete = is_string($course['thumbnail'] ?? null)
+            ? $course['thumbnail']
+            : null;
+
+        // Delete only the instructor's own course.
+        $deleteCourse = $pdo->prepare(
+            'DELETE FROM courses
+             WHERE id = :course_id
+               AND instructor_id = :instructor_id'
+        );
+
+        $deleteCourse->execute([
+            'course_id' => $courseIdToDelete,
+            'instructor_id' => (int) $user['id'],
+        ]);
+
+        if ($deleteCourse->rowCount() !== 1) {
+            courseApiResponse(404, [
+                'status' => 'error',
+                'message' => 'The course was not found or has already been deleted.'
+            ]);
+        }
+
+        // Remove the thumbnail only after the database deletion succeeds.
+        courseApiDeleteThumbnail($thumbnailToDelete);
+
+        courseApiResponse(200, [
+            'status' => 'success',
+            'message' => 'The course was deleted successfully.',
+            'course_id' => $courseIdToDelete,
+            'redirect' => url('instructor/dashboard.php')
+        ]);
+
+    } catch (Throwable $error) {
+        error_log('Instructor course deletion failed: ' . $error->getMessage());
+
+        courseApiResponse(500, [
+            'status' => 'error',
+            'message' => 'The course could not be deleted. Check whether lessons or other records depend on it.'
+        ]);
+    }
+}
+
 
 // Read and validate the submitted fields.
 $title = is_string($_POST['title'] ?? null)
@@ -135,11 +264,51 @@ if ($categoryInput !== '') {
     $categoryId = (int) $validatedCategory;
 }
 
-// Ensure the selected category exists.
+$courseId = null;
+$existingCourse = null;
+
 try {
+    $pdo = db();
+
+    if ($action === 'update') {
+        $validatedCourseId = filter_var(
+            $_POST['course_id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if ($validatedCourseId === false) {
+            courseApiResponse(422, [
+                'status' => 'error',
+                'message' => 'A valid course ID is required.'
+            ]);
+        }
+
+        $courseId = (int) $validatedCourseId;
+        $courseLookup = $pdo->prepare(
+            'SELECT id, thumbnail
+             FROM courses
+             WHERE id = :course_id AND instructor_id = :instructor_id
+             LIMIT 1'
+        );
+        $courseLookup->execute([
+            'course_id' => $courseId,
+            'instructor_id' => (int) $user['id'],
+        ]);
+        $existingCourse = $courseLookup->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existingCourse) {
+            courseApiResponse(404, [
+                'status' => 'error',
+                'message' => 'Course not found or you do not have permission to edit it.'
+            ]);
+        }
+    }
+
+    // Ensure the selected category exists.
     if ($categoryId !== null) {
-        $categoryCheck = db()->prepare(
-            'SELECT id FROM categories WHERE id = :id'
+        $categoryCheck = $pdo->prepare(
+            'SELECT id FROM categories WHERE id = :id LIMIT 1'
         );
 
         $categoryCheck->execute(['id' => $categoryId]);
@@ -153,17 +322,19 @@ try {
     }
 } catch (PDOException $error) {
     error_log(
-        'Course API category validation failed: ' . $error->getMessage()
+        'Course API validation failed: ' . $error->getMessage()
     );
 
     courseApiResponse(500, [
         'status' => 'error',
-        'message' => 'Unable to validate the course category.'
+        'message' => 'Unable to validate the course details.'
     ]);
 }
 
 // Validate the optional course thumbnail.
-$thumbnailPath = null;
+$thumbnailPath = is_string($existingCourse['thumbnail'] ?? null)
+    ? $existingCourse['thumbnail']
+    : null;
 $thumbnailDestination = null;
 
 $upload = $_FILES['thumbnail'] ?? null;
@@ -267,13 +438,50 @@ if (is_array($upload)) {
 }
 
 try {
-    $createCourse = db()->prepare(
+    if ($action === 'update') {
+        $updateCourse = $pdo->prepare(
+            'UPDATE courses
+             SET category_id = :category_id,
+                 title = :title,
+                 description = :description,
+                 thumbnail = :thumbnail,
+                 status = :status
+             WHERE id = :course_id AND instructor_id = :instructor_id'
+        );
+        $updateCourse->execute([
+            'category_id' => $categoryId,
+            'title' => $title,
+            'description' => $description === '' ? null : $description,
+            'thumbnail' => $thumbnailPath,
+            'status' => $status,
+            'course_id' => $courseId,
+            'instructor_id' => (int) $user['id'],
+        ]);
+
+        if ($thumbnailDestination !== null) {
+            courseApiDeleteThumbnail(
+                is_string($existingCourse['thumbnail'] ?? null)
+                    ? $existingCourse['thumbnail']
+                    : null
+            );
+        }
+
+        courseApiResponse(200, [
+            'status' => 'success',
+            'message' => 'Your course was updated successfully.',
+            'course_id' => $courseId,
+            'redirect' => url(
+                'instructor/courses/courses_edit_form?id=' . $courseId . '&updated=1'
+            )
+        ]);
+    }
+
+    $createCourse = $pdo->prepare(
         'INSERT INTO courses
             (instructor_id, category_id, title, description, thumbnail, status)
          VALUES
             (:instructor_id, :category_id, :title, :description, :thumbnail, :status)'
     );
-
     $createCourse->execute([
         'instructor_id' => (int) $user['id'],
         'category_id' => $categoryId,
@@ -283,13 +491,13 @@ try {
         'status' => $status,
     ]);
 
-    $courseId = (int) db()->lastInsertId();
+    $courseId = (int) $pdo->lastInsertId();
 
     courseApiResponse(201, [
         'status' => 'success',
         'message' => 'Your course was created successfully.',
         'course_id' => $courseId,
-        'redirect' => url('instructor/coureses_add_form.php?created=1')
+        'redirect' => url('instructor/courses/coureses_add_form.php?created=1')
     ]);
 } catch (Throwable $error) {
     if (
@@ -299,10 +507,10 @@ try {
         unlink($thumbnailDestination);
     }
 
-    error_log('Instructor course creation failed: ' . $error->getMessage());
+    error_log('Instructor course ' . $action . ' failed: ' . $error->getMessage());
 
     courseApiResponse(500, [
         'status' => 'error',
-        'message' => 'The course could not be saved. Please try again.'
+        'message' => 'The course could not be ' . ($action === 'update' ? 'updated' : 'saved') . '. Please try again.'
     ]);
 }

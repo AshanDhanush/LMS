@@ -77,14 +77,14 @@ function ico(string $name): string
    ========================================================================== */
 $menu = [
     ['label' => 'Dashboard',              'icon' => 'home',      'href' => 'instructor/dashboard.php', 'current' => true],
-    ['label' => 'My courses',             'icon' => 'book',      'href' => 'instructor/my_courses.php'],
+    ['label' => 'My courses',             'icon' => 'book',      'href' => 'instructor/courses/my_courses.php'],
     ['label' => 'Assignments & grading',  'icon' => 'clipboard', 'href' => 'instructor/dashboard.php#sub-title', 'badge' => true],
     ['label' => 'Students & cohorts',     'icon' => 'users',     'href' => 'instructor/dashboard.php#enroll-title'],
     ['label' => 'Analytics & reports',    'icon' => 'chart',     'href' => 'instructor/dashboard.php#teaching-stats'],
     ['label' => 'Course reviews',         'icon' => 'star',      'href' => 'instructor/dashboard.php#course-rating'],
     ['label' => 'Settings',               'icon' => 'gear',      'href' => 'profile.php#security'],
 ];
-$newCourseHref = 'instructor/coureses_add_form.php';
+$newCourseHref = 'instructor/courses/coureses_add_form.php';
 $exportHref    = 'instructor/dashboard.php#sub-title';
 
 

@@ -1,6 +1,6 @@
 ﻿<?php 
 
-require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../../includes/config.php';
 
 $user = currentUser();
 
@@ -89,7 +89,7 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
 
                 <li>
                     <a class="ins-nav__item is-current"
-                       href="<?= courseFormEscape(url('instructor/coureses_add_form.php')) ?>"
+                       href="<?= courseFormEscape(url('instructor/courses/coureses_add_form.php')) ?>"
                        aria-current="page">
                         <span>Create a course</span>
                     </a>

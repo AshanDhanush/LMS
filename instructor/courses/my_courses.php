@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../../includes/config.php';
 
 
 /* ==========================================================================
@@ -15,6 +15,15 @@ if ($user === null) {
 if ($user['role'] !== 'instructor') {
     redirect(dashboardPath($user['role']));             // another role: send them to their own dashboard
 }
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
+if (!isset($_SESSION['instructor_course_form_csrf'])) {
+    $_SESSION['instructor_course_form_csrf'] = bin2hex(random_bytes(32));
+}
+$courseFormCsrfToken = (string) $_SESSION['instructor_course_form_csrf'];
 
 
 /* ==========================================================================
@@ -80,15 +89,15 @@ function ico(string $name): string
    ========================================================================== */
 $menu = [
     ['label' => 'Dashboard',             'icon' => 'home',      'href' => 'instructor/dashboard.php'],
-    ['label' => 'My courses',            'icon' => 'book',      'href' => 'instructor/my_courses.php', 'current' => true],
+    ['label' => 'My courses',            'icon' => 'book',      'href' => 'instructor/courses/my_courses.php', 'current' => true],
     ['label' => 'Assignments & grading', 'icon' => 'clipboard', 'href' => 'instructor/dashboard.php#sub-title', 'badge' => true],
     ['label' => 'Students & cohorts',    'icon' => 'users',     'href' => 'instructor/dashboard.php#enroll-title'],
     ['label' => 'Analytics & reports',   'icon' => 'chart',     'href' => 'instructor/dashboard.php#teaching-stats'],
     ['label' => 'Course reviews',        'icon' => 'star',      'href' => 'instructor/dashboard.php#course-rating'],
     ['label' => 'Settings',              'icon' => 'gear',      'href' => 'profile.php#security'],
 ];
-$newCourseHref = 'instructor/coureses_add_form.php';    // address of the "Create new course" page
-$editCourseHref = 'instructor/course_edit.php';         // address of the edit page (the course id is added to it)
+$newCourseHref = 'instructor/courses/coureses_add_form.php';    // address of the "Create new course" page
+$editCourseHref = 'instructor/courses/courses_edit_form';       // address of the edit page (the course id is added to it)
 
 
 /* ==========================================================================
@@ -102,14 +111,26 @@ $loadError = false;
 try {
     $pdo = db();
 
-    $stmt = $pdo->prepare(
-        'SELECT c.id, c.title, c.thumbnail, c.status, c.created_at,
-                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS enrolled,
-                (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id)     AS lessons
-         FROM courses c
-         WHERE c.instructor_id = ?
-         ORDER BY c.created_at DESC, c.id DESC'
-    );
+   
+$stmt = $pdo->prepare(
+    'SELECT c.id, c.title, c.thumbnail, c.status, c.created_at,
+            (SELECT COUNT(*)
+             FROM enrollments e
+             WHERE e.course_id = c.id) AS enrolled,
+
+            (SELECT COUNT(*)
+             FROM modules m
+             WHERE m.course_id = c.id) AS modules,
+
+            (SELECT COUNT(*)
+             FROM lessons l
+             WHERE l.course_id = c.id) AS lessons
+
+     FROM courses c
+     WHERE c.instructor_id = ?
+     ORDER BY c.created_at DESC, c.id DESC'
+);
+
     $stmt->execute([$instructorId]);
     $courses = $stmt->fetchAll();
 
@@ -232,53 +253,70 @@ try {
                     <?php if (!$courses): ?>
                     <p class="ins-empty">You have not created any courses yet.</p>
                     <?php else: ?>
-                    <div class="ins-table-wrap">
-                        <table class="ins-table" id="courseTable">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Course</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Students</th>
-                                    <th class="ins-table__actions" scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($courses as $course):
-                                    $lessons  = (int) $course['lessons'];
-                                    $thumb    = thumbUrl($course['thumbnail']);
-                                ?>
-                                <tr data-title="<?= h(mb_strtolower($course['title'])) ?>" data-status="<?= h($course['status']) ?>">
-                                    <td>
-                                        <span class="ins-course ins-course--wide">
-                                            <?php if ($thumb !== null): ?>
-                                            <img class="ins-course__thumb" src="<?= h($thumb) ?>" alt="" loading="lazy" width="80" height="50">
-                                            <?php else: ?>
-                                            <span class="ins-course__thumb ins-course__thumb--empty <?= h(tagClass((int) $course['id'])) ?>" aria-hidden="true"><?= ico('book') ?></span>
-                                            <?php endif; ?>
-                                            <span class="ins-course__text">
-                                                <span class="ins-course__title"><?= h($course['title']) ?></span>
-                                                <span class="ins-course__sub">
-                                                    <?= $lessons ?> lesson<?= $lessons === 1 ? '' : 's' ?>, created <?= h(date('M j, Y', (int) strtotime($course['created_at']))) ?>
-                                                </span>
-                                            </span>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php if ($course['status'] === 'published'): ?>
+
+                    <!-- Course Cards Grid -->
+                    <p class="ins-alert ins-course-notice" id="courseDeleteMessage" role="alert" hidden></p>
+                    <div class="ins-course-grid" id="courseGrid">
+                        <?php foreach ($courses as $course):
+                           $lessons = (int) $course['lessons'];
+                           $modules = (int) $course['modules'];
+                           $thumb   = thumbUrl($course['thumbnail']);
+                        ?>
+                        <div class="ins-grid-card" data-title="<?= h(mb_strtolower($course['title'])) ?>" data-status="<?= h($course['status']) ?>">
+                            <a class="ins-grid-card__content"
+                               href="<?= h(url('instructor/courses/course_lesson.php?' . (int) $course['id'])) ?>">
+
+                            <div class="ins-grid-card__header <?= h(tagClass((int) $course['id'])) ?>">
+                                <?php if ($thumb !== null): ?>
+                                    <img class="ins-grid-card__thumb" src="<?= h($thumb) ?>" alt="" loading="lazy">
+                                <?php else: ?>
+                                    <span class="ins-grid-card__thumb--empty" aria-hidden="true"><?= ico('book') ?></span>
+                                <?php endif; ?>
+
+                                <div class="ins-grid-card__badge">
+                                    <?php if ($course['status'] === 'published'): ?>
                                         <span class="ins-chip ins-chip--success">Published</span>
-                                        <?php else: ?>
+                                    <?php else: ?>
                                         <span class="ins-chip ins-chip--muted">Draft</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="ins-table__num"><?= number_format((int) $course['enrolled']) ?></td>
-                                    <td class="ins-table__actions">
-                                        <a class="ins-btn ins-btn--small" href="<?= h(url($editCourseHref . '?id=' . (int) $course['id'])) ?>"><?= ico('edit') ?> Edit</a>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="ins-grid-card__body">
+                                <h3 class="ins-grid-card__title"><?= h($course['title']) ?></h3>
+                                <div class="ins-grid-card__meta">
+                                   <?= $modules ?> module<?= $modules === 1 ? '' : 's' ?>
+                                   &bull;
+                                   <?= $lessons ?> lesson<?= $lessons === 1 ? '' : 's' ?>
+                                   &bull;
+                                   <?= h(date('M j, Y', (int) strtotime($course['created_at']))) ?>
+                                </div>
+                                <div class="ins-grid-card__stats">
+                                    <?= ico('users') ?>
+                                    <span><?= number_format((int) $course['enrolled']) ?> Students enrolled</span>
+                                </div>
+                            </div>
+
+                            </a>
+
+                            <div class="ins-grid-card__footer">
+                                <a class="ins-btn" href="<?= h(url($editCourseHref . '?' . (int) $course['id'])) ?>">
+                                    Edit
+                                </a>
+                                <button class="ins-btn ins-btn--danger" type="button"
+                                        data-course-delete
+                                        data-course-id="<?= (int) $course['id'] ?>"
+                                        data-course-title="<?= h($course['title']) ?>"
+                                        data-csrf-token="<?= h($courseFormCsrfToken) ?>"
+                                        data-delete-url="<?= h(url('api/api_courses.php')) ?>">
+                                    Delete
+                                </button>
+                            </div>
+
+                        </div>
+                        <?php endforeach; ?>
                     </div>
+
                     <p class="ins-empty" id="courseNoMatch" hidden>No courses match your filter.</p>
                     <?php endif; ?>
                 </section>

@@ -179,7 +179,7 @@ $showInstructorProfile = $profileViewer['role'] === 'instructor';
                                 <h2 id="assigned-courses-title">Your Courses</h2>
                                 <p class="text-muted">Recently updated courses you teach.</p>
                             </div>
-                            <a class="btn btn-outline btn-sm" href="<?= htmlspecialchars(url('instructor/my_courses'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">My Courses</a>
+                            <a class="btn btn-outline btn-sm" href="<?= htmlspecialchars(url('instructor/courses/my_courses'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">My Courses</a>
                         </div>
                         <div class="profile-course-list" data-instructor-courses></div>
                     </section>
