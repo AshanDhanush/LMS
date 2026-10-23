@@ -121,56 +121,7 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
 
 <div class="ins-layout">
 
-    <aside class="ins-sidebar"
-           id="instructor-sidebar"
-           aria-label="Instructor navigation">
-
-        <a class="ins-brand"
-           href="<?= editCourseEscape(url('instructor/dashboard')) ?>">
-
-            <span class="ins-brand__mark" aria-hidden="true">L</span>
-
-            <span class="ins-brand__text">
-                <strong>Learning Hub</strong>
-                <small>LMS Academy</small>
-            </span>
-        </a>
-
-        <span class="ins-portal">Instructor portal</span>
-
-        <nav aria-label="Instructor menu">
-            <ul class="ins-nav">
-                <li>
-                    <a class="ins-nav__item"
-                       href="<?= editCourseEscape(url('instructor/dashboard')) ?>">
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a class="ins-nav__item is-current"
-                       href="<?= editCourseEscape(url('instructor/courses/my_courses.php')) ?>"
-                       aria-current="page">
-                        <span>My courses</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a class="ins-nav__item"
-                       href="<?= editCourseEscape(url('instructor/courses/coureses_add_form.php')) ?>">
-                        <span>Create a course</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a class="ins-nav__item"
-                       href="<?= editCourseEscape(url('profile')) ?>">
-                        <span>Profile &amp; settings</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+    <?php require __DIR__ . '/../sidebar.php'; ?>
 
     <div class="ins-body">
 

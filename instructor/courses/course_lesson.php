@@ -1,4 +1,3 @@
-
 <?php
 
 require_once dirname(__DIR__, 2) . '/includes/config.php';
@@ -95,17 +94,30 @@ if (!$course) {
 
 /*
 |--------------------------------------------------------------------------
-| Fetch lessons belonging to this course
+| Fetch modules and lessons belonging to this course
 |--------------------------------------------------------------------------
 */
+
+$moduleStmt = $pdo->prepare(
+    'SELECT id, title, description, module_order, status
+     FROM modules
+     WHERE course_id = :course_id
+     ORDER BY module_order ASC, id ASC'
+);
+$moduleStmt->execute(['course_id' => $courseId]);
+$modules = $moduleStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $stmt = $pdo->prepare(
     'SELECT
         l.id,
         l.course_id,
+        l.module_id,
         l.title,
         l.type,
         l.position,
+        l.video_url,
+        l.pdf_path,
+        l.powerpoint_path,
         COUNT(DISTINCT lp.id) AS completion_count
      FROM lessons l
      LEFT JOIN lesson_progress lp
@@ -114,15 +126,55 @@ $stmt = $pdo->prepare(
      GROUP BY
         l.id,
         l.course_id,
+        l.module_id,
         l.title,
         l.type,
-        l.position
-     ORDER BY l.position ASC, l.id ASC'
+        l.position,
+        l.video_url,
+        l.pdf_path,
+        l.powerpoint_path
+     ORDER BY l.module_id ASC, l.position ASC, l.id ASC'
 );
 
 $stmt->execute(['course_id' => $courseId]);
 
 $allLessons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$moduleLessons = [];
+foreach ($modules as $module) {
+    $moduleLessons[(int) $module['id']] = [];
+}
+
+$unassignedLessons = [];
+foreach ($allLessons as $lesson) {
+    $moduleId = (int) ($lesson['module_id'] ?? 0);
+    if ($moduleId > 0 && array_key_exists($moduleId, $moduleLessons)) {
+        $moduleLessons[$moduleId][] = $lesson;
+    } else {
+        $unassignedLessons[] = $lesson;
+    }
+}
+
+$curriculumGroups = [];
+foreach ($modules as $module) {
+    $curriculumGroups[] = [
+        'id' => (int) $module['id'],
+        'title' => (string) $module['title'],
+        'description' => (string) ($module['description'] ?? ''),
+        'status' => (string) $module['status'],
+        'lessons' => $moduleLessons[(int) $module['id']],
+    ];
+}
+
+if ($unassignedLessons || !$modules) {
+    $curriculumGroups[] = [
+        'id' => null,
+        'title' => 'Unassigned lessons',
+        'description' => 'Lessons not yet assigned to a module.',
+        'status' => null,
+        'lessons' => $unassignedLessons,
+    ];
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -134,6 +186,7 @@ $totalLessons = count($allLessons);
 
 $videoLessons = 0;
 $pdfLessons = 0;
+$powerpointLessons = 0;
 $textLessons = 0;
 
 foreach ($allLessons as $lesson) {
@@ -144,6 +197,10 @@ foreach ($allLessons as $lesson) {
 
         case 'pdf':
             $pdfLessons++;
+            break;
+
+        case 'powerpoint':
+            $powerpointLessons++;
             break;
 
         case 'text':
@@ -204,28 +261,21 @@ $pageTitle = 'Manage Course Curriculum';
                 </span>
             </nav>
 
-            <h1>Manage Course Lessons</h1>
+            <h1>Manage Course Curriculum</h1>
 
             <p>
-                Add, edit, and manage the lessons in this course.
+                Organize course lessons into modules.
             </p>
 
         </div>
 
         <div class="ins-curr-header__actions">
+       
 
             <a
                 class="ins-btn ins-btn--outline-primary"
                 href="<?= courseModulesPageEscape(
-                    url('instructor/lessons/lesson_add_form.php?' . (int) $courseId)
-                ) ?>"
-            >
-                + Add Lesson
-            </a>
-            <a
-                class="ins-btn ins-btn--outline-primary"
-                href="<?= courseModulesPageEscape(
-                    url('instructor/modules/module_add_form.php?' . (int) $courseId)
+                    url('instructor/modules/add_module.php?course_id=' . (int) $courseId)
                 ) ?>"
             >
                 + Add Module
@@ -276,8 +326,8 @@ $pageTitle = 'Manage Course Curriculum';
     <!-- Main curriculum layout -->
     <div class="ins-curr-layout">
 
-        <!-- Course lessons -->
-        <section class="ins-curr-content" aria-label="Course lessons">
+        <!-- Course modules and lessons -->
+        <section class="ins-curr-content" aria-label="Course curriculum">
 
             <div class="ins-curr-filters">
 
@@ -285,8 +335,8 @@ $pageTitle = 'Manage Course Curriculum';
                     type="search"
                     id="curriculumSearch"
                     class="ins-input"
-                    placeholder="Search lessons..."
-                    aria-label="Search lessons"
+                    placeholder="Search modules and lessons..."
+                    aria-label="Search modules and lessons"
                 >
 
                 <span>
@@ -298,52 +348,93 @@ $pageTitle = 'Manage Course Curriculum';
 
             <p class="ins-lesson-message" id="lessonPageMessage" role="status" aria-live="polite"></p>
 
-            <article class="ins-module curriculum-module" data-lesson-card>
-
-                        <!-- Module heading -->
-                        <header class="ins-module__header">
-
-                            <div class="ins-module__title">
-                                <h2>Course Lessons</h2>
-
-                            </div>
-
-                            <div class="ins-module__meta">
-                                <?= $totalLessons ?>
-                                lesson<?= $totalLessons === 1 ? '' : 's' ?>
-                            </div>
-
-                        </header>
-
-                        <!-- Lesson actions -->
-                        <div class="ins-curr-module-actions">
-
-                            <a
-                                class="ins-btn ins-btn--primary ins-btn--small"
-                                href="<?= courseModulesPageEscape(
-                                    url(
-                                        'instructor/lessons/lesson_add_form.php?'
-                                        . (int) $courseId
-                                    )
-                                ) ?>"
-                            >
-                                + Add Lesson
-                            </a>
-
+            <?php foreach ($curriculumGroups as $group): ?>
+                <article class="ins-module curriculum-module" data-lesson-card>
+                    <header class="ins-module__header">
+                        <div class="ins-module__title">
+                            <h2><?= courseModulesPageEscape($group['title']) ?></h2>
+                            <?php if ($group['description'] !== ''): ?>
+                                <p><?= courseModulesPageEscape($group['description']) ?></p>
+                            <?php endif; ?>
                         </div>
 
-                        <!-- Lessons belonging to this course -->
-                        <div class="ins-module__lessons">
+                        <div class="ins-module__meta">
+                            <?= count($group['lessons']) ?>
+                            lesson<?= count($group['lessons']) === 1 ? '' : 's' ?>
+                            <?php if ($group['status'] !== null): ?>
+                                &middot; <?= courseModulesPageEscape(ucfirst($group['status'])) ?>
+                            <?php endif; ?>
+                            <?php if ($group['id'] !== null && count($group['lessons']) > 1): ?>
+                                <button
+                                    type="button"
+                                    class="ins-module-toggle"
+                                    data-module-toggle
+                                    data-module-title="<?= courseModulesPageEscape($group['title']) ?>"
+                                    aria-controls="module-lessons-<?= (int) $group['id'] ?>"
+                                    aria-expanded="true"
+                                    aria-label="Hide lessons for <?= courseModulesPageEscape($group['title']) ?>"
+                                ><span aria-hidden="true">^</span></button>
+                            <?php endif; ?>
+                        </div>
+                    </header>
 
-                            <?php if (!$allLessons): ?>
+                    <div class="ins-curr-module-actions">
+                        <a
+                            class="ins-btn ins-btn--primary ins-btn--small"
+                            href="<?= courseModulesPageEscape(url(
+                                'instructor/lessons/lesson_add_form.php?course_id='
+                                . (int) $courseId
+                                . ($group['id'] !== null ? '&module_id=' . (int) $group['id'] : '')
+                            )) ?>"
+                        >
+                            + Add Lesson
+                        </a>
+                        <?php if ($group['id'] !== null): ?>
+                            <a
+                                class="ins-btn ins-btn--outline ins-btn--small"
+                                href="<?= courseModulesPageEscape(url(
+                                    'instructor/modules/edit_module.php?course_id='
+                                    . (int) $courseId
+                                    . '&id='
+                                    . (int) $group['id']
+                                )) ?>"
+                            >
+                                Edit module
+                            </a>
+                            <form
+                                method="post"
+                                action="<?= courseModulesPageEscape(url('api/api_module.php')) ?>"
+                                class="moduleDeleteForm"
+                                data-module-title="<?= courseModulesPageEscape($group['title']) ?>"
+                                data-lesson-count="<?= count($group['lessons']) ?>"
+                            >
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="module_id"
+                                       value="<?= (int) $group['id'] ?>">
+                                <input type="hidden" name="course_id"
+                                       value="<?= (int) $courseId ?>">
+                                <input type="hidden" name="csrf_token"
+                                       value="<?= courseModulesPageEscape($csrfToken) ?>">
+                                <button type="submit" class="ins-btn ins-btn--danger ins-btn--small">
+                                    Delete module
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>            
 
-                                <p class="ins-curr-empty">
-                                    This course does not have any lessons yet.
-                                </p>
-
-                            <?php else: ?>
-
-                                <?php foreach ($allLessons as $lesson): ?>
+                    <div
+                        class="ins-module__lessons"
+                        <?php if ($group['id'] !== null): ?>
+                            id="module-lessons-<?= (int) $group['id'] ?>"
+                            data-module-lessons
+                        <?php endif; ?>
+                    >
+                        <?php if (!$group['lessons']): ?>
+                            <p class="ins-curr-empty">
+                                This module does not have any lessons yet.
+                            </p>
+                        <?php else: ?>
+                            <?php foreach ($group['lessons'] as $lesson): ?>
 
                                     <div class="ins-lesson-row" data-lesson-row>
 
@@ -355,6 +446,7 @@ $pageTitle = 'Manage Course Curriculum';
                                             echo match ($lesson['type']) {
                                                 'video' => '▶',
                                                 'pdf' => 'PDF',
+                                                'powerpoint' => 'PPT',
                                                 default => 'TXT',
                                             };
                                             ?>
@@ -387,6 +479,27 @@ $pageTitle = 'Manage Course Curriculum';
                                                     completed
                                                 </span>
 
+                                            </div>
+                                            
+                                            <!-- Resource Links for PDF, Video, and PPT -->
+                                            <div class="ins-lesson-resources" style="margin-top: 8px; display: flex; gap: 12px; font-size: 0.9em;">
+                                                <?php if (!empty($lesson['video_url'])): ?>
+                                                    <a href="<?= courseModulesPageEscape($lesson['video_url']) ?>" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+                                                        &#128250; View Video
+                                                    </a>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($lesson['pdf_path'])): ?>
+                                                    <a href="<?= courseModulesPageEscape(url($lesson['pdf_path'])) ?>" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+                                                        &#128196; View PDF
+                                                    </a>
+                                                <?php endif; ?>
+                        
+                                                <?php if (!empty($lesson['powerpoint_path'])): ?>
+                                                    <a href="<?= courseModulesPageEscape(url($lesson['powerpoint_path'])) ?>" download style="text-decoration: none;">
+                                                        &#128202; Download PPT
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
 
                                         </div>
@@ -449,21 +562,18 @@ $pageTitle = 'Manage Course Curriculum';
                                         </div>
 
                                     </div>
-
-                                <?php endforeach; ?>
-
-                            <?php endif; ?>
-
-                        </div>
-
-                    </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
 
             <p
                 id="curriculumNoResults"
                 class="ins-curr-empty-state"
                 hidden
             >
-                No lessons match your search.
+                No modules or lessons match your search.
             </p>
 
         </section>
@@ -480,6 +590,11 @@ $pageTitle = 'Manage Course Curriculum';
                     <li class="<?= $totalLessons > 0 ? 'checked' : 'pending' ?>">
                         <?= $totalLessons > 0 ? '✓' : '○' ?>
                         At least one lesson added
+                    </li>
+
+                    <li class="<?= count($modules) > 0 ? 'checked' : 'pending' ?>">
+                        <?= count($modules) > 0 ? '✓' : '○' ?>
+                        At least one module added
                     </li>
 
                     <li class="<?= $course['status'] === 'published' ? 'checked' : 'pending' ?>">
@@ -512,10 +627,16 @@ $pageTitle = 'Manage Course Curriculum';
                 </p>
 
                 <p>
+                    <strong>Modules</strong><br>
+                    <?= count($modules) ?>
+                </p>
+
+                <p>
                     <strong>Lesson types</strong><br>
                     Text: <?= $textLessons ?><br>
                     Video: <?= $videoLessons ?><br>
-                    PDF: <?= $pdfLessons ?>
+                    PDF: <?= $pdfLessons ?><br>
+                    PowerPoint: <?= $powerpointLessons ?>
                 </p>
 
                 <a
@@ -545,34 +666,78 @@ window.lessonApiUrl = <?= json_encode(url('api/api_lesson.php')) ?>;
     const lessonCards = document.querySelectorAll('[data-lesson-card]');
     const noResults = document.getElementById('curriculumNoResults');
 
+    function setModuleLessonsExpanded(toggle, isExpanded) {
+        const lessonListId = toggle.getAttribute('aria-controls');
+        const lessonList = lessonListId
+            ? document.getElementById(lessonListId)
+            : null;
+
+        if (!lessonList) {
+            return;
+        }
+
+        lessonList.hidden = !isExpanded;
+        toggle.setAttribute('aria-expanded', String(isExpanded));
+        toggle.setAttribute(
+            'aria-label',
+            `${isExpanded ? 'Hide' : 'Show'} lessons for ${
+                toggle.dataset.moduleTitle || 'this module'
+            }`
+        );
+    }
+
+    document.querySelectorAll('[data-module-toggle]').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            setModuleLessonsExpanded(toggle, !isExpanded);
+        });
+    });
+
     if (!searchInput) {
         return;
     }
 
     function filterCurriculum() {
         const query = searchInput.value.trim().toLowerCase();
-        let visibleLessons = 0;
+        let visibleGroups = 0;
 
         lessonCards.forEach((lessonCard) => {
             const lessonRows = lessonCard.querySelectorAll('[data-lesson-row]');
+            const moduleHeading = lessonCard.querySelector('.ins-module__title');
+            const moduleText = moduleHeading
+                ? moduleHeading.textContent.toLowerCase()
+                : '';
+            const moduleMatches = query !== '' && moduleText.includes(query);
+            let cardHasVisibleContent = moduleMatches;
+            const moduleToggle = lessonCard.querySelector('[data-module-toggle]');
+
             lessonRows.forEach((lessonRow) => {
                 const lessonTitle = lessonRow.querySelector('[data-lesson-title]');
                 const lessonTitleText = lessonTitle
                     ? lessonTitle.textContent.toLowerCase()
                     : '';
 
-                const lessonMatches = !query || lessonTitleText.includes(query);
+                const lessonMatches = !query || moduleMatches || lessonTitleText.includes(query);
 
                 lessonRow.hidden = !lessonMatches;
 
                 if (lessonMatches) {
-                    visibleLessons++;
+                    cardHasVisibleContent = true;
                 }
             });
+
+            if (query !== '' && moduleToggle && cardHasVisibleContent) {
+                setModuleLessonsExpanded(moduleToggle, true);
+            }
+
+            lessonCard.hidden = query !== '' && !cardHasVisibleContent;
+            if (!lessonCard.hidden) {
+                visibleGroups++;
+            }
         });
 
         if (noResults) {
-            noResults.hidden = visibleLessons > 0 || query === '';
+            noResults.hidden = visibleGroups > 0 || query === '';
         }
     }
 

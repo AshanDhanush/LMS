@@ -1802,6 +1802,110 @@ a.ins-btn--primary:hover {
   gap: 10px;
 }
 
+.ins-lesson-form-card {
+  width: 100%;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.ins-module-form-card {
+  max-width: 760px;
+  justify-self: start;
+}
+
+.ins-lesson-form {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.ins-lesson-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ins-lesson-field label {
+  color: var(--n-text);
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.ins-lesson-field input:not([type="file"]),
+.ins-lesson-field select,
+.ins-lesson-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--n-border);
+  border-radius: var(--n-radius-base);
+  background: var(--n-surface);
+  color: var(--n-text);
+  font: inherit;
+  font-size: .9rem;
+  line-height: 1.45;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.ins-lesson-field textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.ins-lesson-field input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+  padding: 9px;
+  border: 1px dashed var(--n-border);
+  border-radius: var(--n-radius-base);
+  background: var(--n-surface-2);
+  color: var(--n-muted);
+  font: inherit;
+  font-size: .85rem;
+}
+
+.ins-lesson-field input:not([type="file"]):hover,
+.ins-lesson-field select:hover,
+.ins-lesson-field textarea:hover {
+  border-color: var(--n-faint);
+}
+
+.ins-lesson-field input:not([type="file"]):focus,
+.ins-lesson-field select:focus,
+.ins-lesson-field textarea:focus,
+.ins-lesson-field input[type="file"]:focus {
+  outline: none;
+  border-color: var(--n-primary);
+  box-shadow: 0 0 0 3px var(--n-primary-soft);
+}
+
+.ins-lesson-field input::placeholder,
+.ins-lesson-field textarea::placeholder {
+  color: var(--n-faint);
+}
+
+.ins-lesson-field small,
+.ins-lesson-file {
+  color: var(--n-faint);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.ins-lesson-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--n-border);
+}
+
+.ins-lesson-form__actions .ins-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
 .ins-lesson-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2008,6 +2112,14 @@ a.ins-btn--primary:hover {
     gap: 16px;
   }
 
+  .ins-lesson-form__actions {
+    justify-content: stretch;
+  }
+
+  .ins-lesson-form__actions .ins-btn {
+    flex: 1 1 120px;
+  }
+
   .ins-lesson-hero {
     align-items: stretch;
   }
@@ -2177,6 +2289,42 @@ a.ins-btn--primary:hover {
             color: var(--text-muted);
         }
 
+        .ins-module-toggle {
+            display: inline-grid;
+            width: 30px;
+            height: 30px;
+            margin-left: 8px;
+            padding: 0;
+            place-items: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--primary-text);
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        .ins-module-toggle:hover {
+            background: var(--surface-2);
+        }
+
+        .ins-module-toggle:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .ins-module-toggle span {
+            display: block;
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1;
+            transition: transform .18s ease;
+        }
+
+        .ins-module-toggle[aria-expanded="false"] span {
+            transform: rotate(180deg);
+        }
+
         .ins-badge,
         .ins-tag,
         .ins-status {
@@ -2218,6 +2366,10 @@ a.ins-btn--primary:hover {
         .ins-module__lessons {
             border-top: 1px solid var(--border);
             padding-top: 12px;
+        }
+
+        .ins-module__lessons[hidden] {
+            display: none;
         }
 
         .ins-lesson-row {

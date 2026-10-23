@@ -72,18 +72,6 @@ function ico(string $name): string
 }
 
 
-/* ==========================================================================
-   Menu links point to the relevant dashboard section until dedicated pages are available.
-   ========================================================================== */
-$menu = [
-    ['label' => 'Dashboard',              'icon' => 'home',      'href' => 'instructor/dashboard.php', 'current' => true],
-    ['label' => 'My courses',             'icon' => 'book',      'href' => 'instructor/courses/my_courses.php'],
-    ['label' => 'Assignments & grading',  'icon' => 'clipboard', 'href' => 'instructor/dashboard.php#sub-title', 'badge' => true],
-    ['label' => 'Students & cohorts',     'icon' => 'users',     'href' => 'instructor/dashboard.php#enroll-title'],
-    ['label' => 'Analytics & reports',    'icon' => 'chart',     'href' => 'instructor/dashboard.php#teaching-stats'],
-    ['label' => 'Course reviews',         'icon' => 'star',      'href' => 'instructor/dashboard.php#course-rating'],
-    ['label' => 'Settings',               'icon' => 'gear',      'href' => 'profile.php#security'],
-];
 $newCourseHref = 'instructor/courses/coureses_add_form.php';
 $exportHref    = 'instructor/dashboard.php#sub-title';
 
@@ -239,34 +227,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
 
     <div class="ins-layout">
 
-        <!-- ========== Sidebar ========== -->
-        <aside class="ins-sidebar" id="instructor-sidebar" aria-label="Instructor navigation">
-            <a class="ins-brand" href="<?= h(url('instructor/dashboard.php')) ?>">
-                <span class="ins-brand__mark" aria-hidden="true">L</span>
-                <span class="ins-brand__text"><strong>Learning Hub</strong><small>LMS Academy</small></span>
-            </a>
-            <span class="ins-portal">Instructor portal</span>
-
-            <nav aria-label="Instructor menu">
-                <ul class="ins-nav">
-                    <?php foreach ($menu as $item): ?>
-                    <li>
-                        <?php if (!empty($item['current'])): ?>
-                        <a class="ins-nav__item is-current" href="<?= h(url($item['href'])) ?>" aria-current="page">
-                        <?php else: ?>
-                        <a class="ins-nav__item" href="<?= h(url($item['href'])) ?>">
-                        <?php endif; ?>
-                            <?= ico($item['icon']) ?>
-                            <span class="ins-nav__label"><?= h($item['label']) ?></span>
-                            <?php if (!empty($item['badge']) && $pendingTotal > 0): ?>
-                            <span class="ins-nav__badge"><?= $pendingTotal ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </nav>
-        </aside>
+        <?php require __DIR__ . '/sidebar.php'; ?>
 
         <div class="ins-body">
 

@@ -21,7 +21,7 @@ function lessonApiDeleteFile(?string $relativePath): void
     $relativePath = str_replace('\\', '/', $relativePath);
 
     // Only delete files inside uploads/lessons.
-    if (!preg_match('~^uploads/lessons/[a-f0-9]{32}\.pdf$~i', $relativePath)) {
+    if (!preg_match('~^uploads/lessons/[a-f0-9]{32}\.(?:pdf|ppt|pptx)$~i', $relativePath)) {
         return;
     }
 
@@ -38,18 +38,18 @@ function lessonApiDeleteFile(?string $relativePath): void
     }
 }
 
-function lessonApiSavePdf(array $upload): string
+function lessonApiSaveUpload(array $upload): string
 {
     if (
         !isset($upload['error']) ||
         is_array($upload['error']) ||
         $upload['error'] !== UPLOAD_ERR_OK
     ) {
-        throw new RuntimeException('Please select a valid PDF file.');
+        throw new RuntimeException('Please select a valid lesson file.');
     }
 
     if (($upload['size'] ?? 0) > 10 * 1024 * 1024) {
-        throw new RuntimeException('The PDF must not exceed 10 MB.');
+        throw new RuntimeException('Lesson files must not exceed 10 MB.');
     }
 
     $tmp = $upload['tmp_name'] ?? '';
@@ -59,19 +59,38 @@ function lessonApiSavePdf(array $upload): string
     }
 
     $finfo = new finfo(FILEINFO_MIME_TYPE);
-    if ($finfo->file($tmp) !== 'application/pdf') {
-        throw new RuntimeException('Only PDF files are allowed.');
-    }
-
-    // Basic PDF signature validation.
+    $mimeType = $finfo->file($tmp);
     $handle = fopen($tmp, 'rb');
-    $signature = $handle ? fread($handle, 5) : '';
+    $signature = $handle ? fread($handle, 8) : '';
     if ($handle) {
         fclose($handle);
     }
 
-    if ($signature !== '%PDF-') {
-        throw new RuntimeException('The file is not a valid PDF.');
+    $extension = strtolower(pathinfo((string) ($upload['name'] ?? ''), PATHINFO_EXTENSION));
+    $allowedTypes = [
+        'pdf' => [
+            'mime_types' => ['application/pdf'],
+            'signature' => '%PDF-',
+        ],
+        'ppt' => [
+            'mime_types' => ['application/vnd.ms-powerpoint', 'application/x-ole-storage'],
+            'signature' => "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",
+        ],
+        'pptx' => [
+            'mime_types' => [
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'application/zip',
+            ],
+            'signature' => 'PK',
+        ],
+    ];
+
+    if (
+        !isset($allowedTypes[$extension]) ||
+        !in_array($mimeType, $allowedTypes[$extension]['mime_types'], true) ||
+        !str_starts_with($signature, $allowedTypes[$extension]['signature'])
+    ) {
+        throw new RuntimeException('Upload a valid PDF, PPT, or PPTX file.');
     }
 
     $directory = dirname(__DIR__) . '/uploads/lessons';
@@ -80,11 +99,11 @@ function lessonApiSavePdf(array $upload): string
         throw new RuntimeException('Could not create the lesson upload directory.');
     }
 
-    $filename = bin2hex(random_bytes(16)) . '.pdf';
+    $filename = bin2hex(random_bytes(16)) . '.' . $extension;
     $destination = $directory . '/' . $filename;
 
     if (!move_uploaded_file($tmp, $destination)) {
-        throw new RuntimeException('Could not save the PDF file.');
+        throw new RuntimeException('Could not save the lesson file.');
     }
 
     return 'uploads/lessons/' . $filename;
@@ -186,8 +205,8 @@ try {
 
     if ($action !== 'create') {
         $stmt = $pdo->prepare(
-            'SELECT l.id, l.course_id, l.title, l.type, l.content,
-                    l.file_path, l.position
+            'SELECT l.id, l.course_id, l.module_id, l.title, l.type, l.content,
+                l.file_path, l.pdf_path, l.powerpoint_path, l.video_url, l.position
              FROM lessons l
              INNER JOIN courses c ON c.id = l.course_id
              WHERE l.id = :lesson_id
@@ -214,7 +233,13 @@ try {
         $stmt = $pdo->prepare('DELETE FROM lessons WHERE id = :id');
         $stmt->execute(['id' => $lessonId]);
 
-        lessonApiDeleteFile($existing['file_path'] ?? null);
+        foreach (array_unique(array_filter([
+            $existing['file_path'] ?? null,
+            $existing['pdf_path'] ?? null,
+            $existing['powerpoint_path'] ?? null,
+        ])) as $filePath) {
+            lessonApiDeleteFile($filePath);
+        }
 
         lessonApiResponse(200, [
             'status' => 'success',
@@ -223,9 +248,50 @@ try {
         ]);
     }
 
+    $moduleId = null;
+    if (array_key_exists('module_id', $_POST)) {
+        $postedModuleId = trim((string) $_POST['module_id']);
+        if ($postedModuleId !== '') {
+            $moduleId = filter_var(
+                $postedModuleId,
+                FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1]]
+            );
+
+            if (!$moduleId) {
+                lessonApiResponse(422, [
+                    'status' => 'error',
+                    'message' => 'Select a valid module.',
+                ]);
+            }
+        }
+    } elseif ($action === 'update') {
+        $moduleId = isset($existing['module_id']) ? (int) $existing['module_id'] : null;
+    }
+
+    if ($moduleId !== null) {
+        $stmt = $pdo->prepare(
+            'SELECT id FROM modules
+             WHERE id = :module_id AND course_id = :course_id
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'module_id' => $moduleId,
+            'course_id' => $courseId,
+        ]);
+
+        if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+            lessonApiResponse(422, [
+                'status' => 'error',
+                'message' => 'The selected module does not belong to this course.',
+            ]);
+        }
+    }
+
     $title = trim((string) ($_POST['title'] ?? ''));
     $type = (string) ($_POST['type'] ?? 'text');
     $content = trim((string) ($_POST['content'] ?? ''));
+    $videoUrl = trim((string) ($_POST['video_url'] ?? ''));
     $position = filter_var(
         $_POST['position'] ?? 1,
         FILTER_VALIDATE_INT,
@@ -239,7 +305,7 @@ try {
         ]);
     }
 
-    if (!in_array($type, ['text', 'video', 'pdf'], true)) {
+    if (!in_array($type, ['text', 'video', 'pdf', 'powerpoint'], true)) {
         lessonApiResponse(422, [
             'status' => 'error',
             'message' => 'Select a valid lesson type.',
@@ -253,11 +319,11 @@ try {
         ]);
     }
 
-    if ($type === 'video' && $content !== '') {
-        $scheme = strtolower((string) parse_url($content, PHP_URL_SCHEME));
-
+    if ($videoUrl !== '') {
+        $scheme = strtolower((string) parse_url($videoUrl, PHP_URL_SCHEME));
         if (
-            !filter_var($content, FILTER_VALIDATE_URL) ||
+            mb_strlen($videoUrl, 'UTF-8') > 1000 ||
+            !filter_var($videoUrl, FILTER_VALIDATE_URL) ||
             !in_array($scheme, ['http', 'https'], true)
         ) {
             lessonApiResponse(422, [
@@ -267,18 +333,41 @@ try {
         }
     }
 
-    // Text and video use content; PDF uses file_path.
-    $filePath = $existing['file_path'] ?? null;
-    $oldFilePath = $filePath;
+    if ($type === 'video' && $videoUrl === '') {
+        lessonApiResponse(422, [
+            'status' => 'error',
+            'message' => 'Enter the video URL.',
+        ]);
+    }
 
+    if ($type === 'text' && $content === '') {
+        lessonApiResponse(422, [
+            'status' => 'error',
+            'message' => 'Enter the lesson content.',
+        ]);
+    }
+
+    $oldFilePaths = array_unique(array_filter([
+        $existing['file_path'] ?? null,
+        $existing['pdf_path'] ?? null,
+        $existing['powerpoint_path'] ?? null,
+    ]));
+    $pdfPath = null;
+    $powerpointPath = null;
+    $newUploadPaths = [];
     if ($type === 'pdf') {
         $upload = $_FILES['lesson_pdf'] ?? null;
         $hasNewUpload = is_array($upload)
             && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
 
         if ($hasNewUpload) {
-            $filePath = lessonApiSavePdf($upload);
-        } elseif ($action === 'create' || !$filePath) {
+            $pdfPath = lessonApiSaveUpload($upload);
+            $newUploadPaths[] = $pdfPath;
+        } else {
+            $pdfPath = $existing['pdf_path'] ?? $existing['file_path'] ?? null;
+        }
+
+        if (!$pdfPath) {
             lessonApiResponse(422, [
                 'status' => 'error',
                 'message' => 'Upload a PDF for this lesson.',
@@ -286,62 +375,84 @@ try {
         }
 
         $content = '';
+    } elseif ($type === 'powerpoint') {
+        $upload = $_FILES['lesson_powerpoint'] ?? null;
+        $hasNewUpload = is_array($upload)
+            && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+
+        if ($hasNewUpload) {
+            $powerpointPath = lessonApiSaveUpload($upload);
+            $newUploadPaths[] = $powerpointPath;
+        } else {
+            $powerpointPath = $existing['powerpoint_path'] ?? null;
+        }
+
+        if (!$powerpointPath) {
+            lessonApiResponse(422, [
+                'status' => 'error',
+                'message' => 'Upload a PowerPoint file for this lesson.',
+            ]);
+        }
+
+        $content = '';
     } else {
-        $filePath = null;
-
-        if ($type === 'text' && $content === '') {
-            lessonApiResponse(422, [
-                'status' => 'error',
-                'message' => 'Enter the lesson content.',
-            ]);
-        }
-
-        if ($type === 'video' && $content === '') {
-            lessonApiResponse(422, [
-                'status' => 'error',
-                'message' => 'Enter the video URL.',
-            ]);
-        }
+        $content = $type === 'text' ? $content : '';
     }
 
     if ($action === 'create') {
         $stmt = $pdo->prepare(
             'INSERT INTO lessons
-                (course_id, title, type, content, file_path, position)
+                (course_id, module_id, title, type, content, file_path, pdf_path,
+                 powerpoint_path, video_url, position)
              VALUES
-                (:course_id, :title, :type, :content, :file_path, :position)'
+                (:course_id, :module_id, :title, :type, :content, :file_path, :pdf_path,
+                 :powerpoint_path, :video_url, :position)'
         );
 
         $stmt->execute([
             'course_id' => $courseId,
+            'module_id' => $moduleId,
             'title' => $title,
             'type' => $type,
             'content' => $content !== '' ? $content : null,
-            'file_path' => $filePath,
+            'file_path' => $pdfPath,
+            'pdf_path' => $pdfPath,
+            'powerpoint_path' => $powerpointPath,
+            'video_url' => $videoUrl !== '' ? $videoUrl : null,
             'position' => $position,
         ]);
     } else {
         $stmt = $pdo->prepare(
             'UPDATE lessons
-             SET title = :title,
+             SET module_id = :module_id,
+                 title = :title,
                  type = :type,
                  content = :content,
+                 video_url = :video_url,
                  file_path = :file_path,
+                 pdf_path = :pdf_path,
+                 powerpoint_path = :powerpoint_path,
                  position = :position
              WHERE id = :id'
         );
 
         $stmt->execute([
+            'module_id' => $moduleId,
             'title' => $title,
             'type' => $type,
             'content' => $content !== '' ? $content : null,
-            'file_path' => $filePath,
+            'video_url' => $videoUrl !== '' ? $videoUrl : null,
+            'file_path' => $pdfPath,
+            'pdf_path' => $pdfPath,
+            'powerpoint_path' => $powerpointPath,
             'position' => $position,
             'id' => $lessonId,
         ]);
 
-        // Remove the old PDF only after the database update succeeds.
-        if ($oldFilePath && $oldFilePath !== $filePath) {
+    }
+
+    foreach ($oldFilePaths as $oldFilePath) {
+        if (!in_array($oldFilePath, [$pdfPath, $powerpointPath], true)) {
             lessonApiDeleteFile($oldFilePath);
         }
     }
@@ -354,6 +465,10 @@ try {
         'redirect' => url('instructor/courses/course_lesson.php?' . $courseId),
     ]);
 } catch (Throwable $e) {
+    foreach ($newUploadPaths ?? [] as $newUploadPath) {
+        lessonApiDeleteFile($newUploadPath);
+    }
+
     error_log('Lesson API error: ' . $e->getMessage());
 
     lessonApiResponse(500, [

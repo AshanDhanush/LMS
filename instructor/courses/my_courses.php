@@ -162,34 +162,7 @@ $stmt = $pdo->prepare(
 
     <div class="ins-layout">
 
-        <!-- ========== Sidebar ========== -->
-        <aside class="ins-sidebar" id="instructor-sidebar" aria-label="Instructor navigation">
-            <a class="ins-brand" href="<?= h(url('instructor/dashboard.php')) ?>">
-                <span class="ins-brand__mark" aria-hidden="true">L</span>
-                <span class="ins-brand__text"><strong>Learning Hub</strong><small>LMS Academy</small></span>
-            </a>
-            <span class="ins-portal">Instructor portal</span>
-
-            <nav aria-label="Instructor menu">
-                <ul class="ins-nav">
-                    <?php foreach ($menu as $item): ?>
-                    <li>
-                        <?php if (!empty($item['current'])): ?>
-                        <a class="ins-nav__item is-current" href="<?= h(url($item['href'])) ?>" aria-current="page">
-                        <?php else: ?>
-                        <a class="ins-nav__item" href="<?= h(url($item['href'])) ?>">
-                        <?php endif; ?>
-                            <?= ico($item['icon']) ?>
-                            <span class="ins-nav__label"><?= h($item['label']) ?></span>
-                            <?php if (!empty($item['badge']) && $pendingTotal > 0): ?>
-                            <span class="ins-nav__badge"><?= $pendingTotal ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </nav>
-        </aside>
+        <?php require __DIR__ . '/../sidebar.php'; ?>
 
         <div class="ins-body">
 

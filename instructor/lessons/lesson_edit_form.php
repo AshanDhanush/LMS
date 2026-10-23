@@ -36,9 +36,11 @@ if (!$lessonId) {
     exit('Invalid lesson ID.');
 }
 
-$stmt = db()->prepare(
-    'SELECT l.id, l.course_id, l.title, l.type, l.content,
-            l.file_path, l.position, c.title AS course_title
+$pdo = db();
+$stmt = $pdo->prepare(
+    'SELECT l.id, l.course_id, l.module_id, l.title, l.type, l.content,
+            l.file_path, l.pdf_path, l.powerpoint_path, l.video_url, l.position,
+            c.title AS course_title
      FROM lessons l
      INNER JOIN courses c ON c.id = l.course_id
      WHERE l.id = :lesson_id AND c.instructor_id = :instructor_id'
@@ -54,6 +56,16 @@ if (!$lesson) {
     http_response_code(404);
     exit('Lesson not found or you do not own its course.');
 }
+
+$moduleStmt = $pdo->prepare(
+    'SELECT id, title
+     FROM modules
+     WHERE course_id = :course_id
+     ORDER BY module_order ASC, id ASC'
+);
+$moduleStmt->execute(['course_id' => (int) $lesson['course_id']]);
+$modules = $moduleStmt->fetchAll(PDO::FETCH_ASSOC);
+$pdfPath = $lesson['pdf_path'] ?: ($lesson['file_path'] ?? null);
 
 function editLessonEscape(mixed $value): string
 {
@@ -101,6 +113,21 @@ function editLessonEscape(mixed $value): string
             </div>
 
             <div class="ins-lesson-field">
+                <label for="lessonModule">Module</label>
+                <select id="lessonModule" name="module_id">
+                    <option value="">Unassigned</option>
+                    <?php foreach ($modules as $module): ?>
+                        <option
+                            value="<?= (int) $module['id'] ?>"
+                            <?= (int) ($lesson['module_id'] ?? 0) === (int) $module['id'] ? 'selected' : '' ?>
+                        >
+                            <?= editLessonEscape($module['title']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="ins-lesson-field">
                 <label for="lessonType">Lesson type</label>
                 <select id="lessonType" name="type" required>
                     <option value="text" <?= $lesson['type'] === 'text' ? 'selected' : '' ?>>
@@ -112,26 +139,53 @@ function editLessonEscape(mixed $value): string
                     <option value="pdf" <?= $lesson['type'] === 'pdf' ? 'selected' : '' ?>>
                         PDF lesson
                     </option>
+                    <option value="powerpoint" <?= $lesson['type'] === 'powerpoint' ? 'selected' : '' ?>>
+                        PowerPoint lesson
+                    </option>
                 </select>
             </div>
 
-            <div id="lessonContentGroup" class="ins-lesson-field">
-                <label id="lessonContentLabel" for="lessonContent">Lesson content</label>
+            <div id="lessonTextGroup" class="ins-lesson-field">
+                <label for="lessonContent">Lesson content</label>
                 <textarea id="lessonContent" name="content" rows="8"><?= editLessonEscape(
-                              $lesson['content'] ?? ''
-                          ) ?></textarea>
+                    $lesson['content'] ?? ''
+                ) ?></textarea>
             </div>
 
             <div id="lessonPdfGroup" class="ins-lesson-field" hidden>
                 <label for="lessonPdf">Replace PDF (optional, maximum 10 MB)</label>
 
-                <?php if ($lesson['file_path']): ?>
-                    <p class="ins-lesson-file">Current PDF: <?= editLessonEscape(basename($lesson['file_path'])) ?></p>
+                <?php if ($pdfPath): ?>
+                    <p class="ins-lesson-file">Current PDF: <?= editLessonEscape(basename($pdfPath)) ?></p>
                 <?php endif; ?>
 
                 <input id="lessonPdf" name="lesson_pdf" type="file"
                        accept=".pdf,application/pdf">
                 <small>Leave the upload empty to keep the existing PDF when editing a PDF lesson.</small>
+            </div>
+
+            <div id="lessonPowerPointGroup" class="ins-lesson-field" hidden>
+                <label for="lessonPowerPoint">Replace PowerPoint (optional, maximum 10 MB)</label>
+
+                <?php if ($lesson['powerpoint_path']): ?>
+                    <p class="ins-lesson-file">Current PowerPoint: <?= editLessonEscape(basename($lesson['powerpoint_path'])) ?></p>
+                <?php endif; ?>
+
+                <input id="lessonPowerPoint" name="lesson_powerpoint" type="file"
+                       accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+                <small>Leave the upload empty to keep the existing PowerPoint file.</small>
+            </div>
+
+            <div id="lessonVideoGroup" class="ins-lesson-field">
+                <label for="lessonVideoUrl">Video URL (optional)</label>
+                <input id="lessonVideoUrl" name="video_url" type="url" maxlength="1000"
+                       value="<?= editLessonEscape(
+                           $lesson['video_url'] ?: (
+                               $lesson['type'] === 'video' ? ($lesson['content'] ?? '') : ''
+                           )
+                       ) ?>"
+                       placeholder="https://www.youtube.com/watch?v=...">
+                <small>A video lesson requires a video URL. You may also add a related link to another lesson type.</small>
             </div>
 
             <div class="ins-lesson-field">

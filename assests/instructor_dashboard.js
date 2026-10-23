@@ -267,47 +267,53 @@ if (courseForm instanceof HTMLFormElement) {
 (() => {
   const form = document.querySelector("#lessonForm");
   const typeSelect = document.querySelector("#lessonType");
-  const contentGroup = document.querySelector("#lessonContentGroup");
-  const contentLabel = document.querySelector("#lessonContentLabel");
+  const textGroup = document.querySelector("#lessonTextGroup");
   const contentInput = document.querySelector("#lessonContent");
   const pdfGroup = document.querySelector("#lessonPdfGroup");
   const pdfInput = document.querySelector("#lessonPdf");
+  const powerpointGroup = document.querySelector("#lessonPowerPointGroup");
+  const powerpointInput = document.querySelector("#lessonPowerPoint");
+  const videoInput = document.querySelector("#lessonVideoUrl");
   const submitButton = document.querySelector("#lessonSubmitButton");
   const message = document.querySelector("#lessonFormMessage");
+  const isEditing = form?.querySelector('[name="action"]')?.value === "update";
 
   function updateLessonFields() {
     if (!typeSelect) return;
 
     const type = typeSelect.value;
     const isPdf = type === "pdf";
+    const isPowerPoint = type === "powerpoint";
     const isVideo = type === "video";
 
-    if (contentGroup) {
-      contentGroup.hidden = isPdf;
+    if (textGroup) {
+      textGroup.hidden = type !== "text";
     }
 
     if (pdfGroup) {
       pdfGroup.hidden = !isPdf;
-      pdfGroup.style.display = isPdf ? "block" : "none";
     }
 
-    if (contentLabel) {
-      contentLabel.textContent = isVideo
-        ? "Video URL"
-        : "Lesson content";
+    if (powerpointGroup) {
+      powerpointGroup.hidden = !isPowerPoint;
     }
 
     if (contentInput) {
-      contentInput.placeholder = isVideo
-        ? "https://www.youtube.com/watch?v=..."
-        : "Write your lesson content here";
-
-      contentInput.required = !isPdf;
+      contentInput.required = type === "text";
     }
 
     if (pdfInput) {
-      pdfInput.required = false;
       pdfInput.disabled = !isPdf;
+      pdfInput.required = isPdf && !isEditing;
+    }
+
+    if (powerpointInput) {
+      powerpointInput.disabled = !isPowerPoint;
+      powerpointInput.required = isPowerPoint && !isEditing;
+    }
+
+    if (videoInput) {
+      videoInput.required = isVideo;
     }
   }
 
@@ -436,5 +442,133 @@ if (courseForm instanceof HTMLFormElement) {
         }
       }
     });
+  });
+
+  document.querySelectorAll(".moduleDeleteForm").forEach((deleteForm) => {
+    if (!(deleteForm instanceof HTMLFormElement)) return;
+
+    deleteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const moduleTitle = deleteForm.dataset.moduleTitle || "this module";
+      const lessonCount = Number(deleteForm.dataset.lessonCount || 0);
+      const lessonWarning = lessonCount > 0
+        ? ` This will also permanently delete ${lessonCount} lesson${lessonCount === 1 ? "" : "s"} and their progress.`
+        : "";
+
+      if (!window.confirm(`Delete "${moduleTitle}"?${lessonWarning} This action cannot be undone.`)) {
+        return;
+      }
+
+      const button = deleteForm.querySelector('button[type="submit"]');
+      const pageMessage = document.querySelector("#lessonPageMessage");
+      const originalButtonText = button?.textContent || "Delete module";
+
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = true;
+        button.textContent = "Deleting...";
+      }
+
+      if (pageMessage instanceof HTMLElement) {
+        pageMessage.hidden = true;
+        pageMessage.textContent = "";
+      }
+
+      try {
+        const response = await fetch(deleteForm.action, {
+          method: "POST",
+          body: new FormData(deleteForm),
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch {
+          throw new Error("The server returned an invalid response. Please try again.");
+        }
+
+        if (!response.ok || result.status !== "success") {
+          throw new Error(result.message || "Could not delete the module.");
+        }
+
+        window.location.assign(result.redirect || window.location.href);
+      } catch (error) {
+        if (pageMessage instanceof HTMLElement) {
+          pageMessage.textContent = error instanceof Error
+            ? error.message
+            : "Could not delete the module. Please try again.";
+          pageMessage.hidden = false;
+          pageMessage.style.color = "#b42318";
+        } else {
+          window.alert(error instanceof Error
+            ? error.message
+            : "Could not delete the module. Please try again.");
+        }
+
+        if (button instanceof HTMLButtonElement) {
+          button.disabled = false;
+          button.textContent = originalButtonText;
+        }
+      }
+    });
+  });
+
+  })();
+
+(() => {
+  const form = document.querySelector("#editModuleForm");
+  const message = document.querySelector("#moduleFormMessage");
+  const submitButton = document.querySelector("#editModuleSubmitButton");
+
+  if (
+    !(form instanceof HTMLFormElement) ||
+    !(message instanceof HTMLElement) ||
+    !(submitButton instanceof HTMLButtonElement)
+  ) {
+    return;
+  }
+
+  const originalButtonText = submitButton.textContent;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!form.reportValidity()) return;
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving...";
+    message.hidden = true;
+    message.textContent = "";
+
+    try {
+      const response = await fetch(window.moduleApiUrl || form.action, {
+        method: "POST",
+        body: new FormData(form),
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("The server returned an invalid response. Please try again.");
+      }
+
+      if (!response.ok || result.status !== "success") {
+        throw new Error(result.message || "Could not save the module.");
+      }
+
+      window.location.assign(result.redirect || window.moduleRedirectUrl);
+    } catch (error) {
+      message.textContent = error instanceof Error
+        ? error.message
+        : "Could not save the module. Please try again.";
+      message.hidden = false;
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
   });
 })();
