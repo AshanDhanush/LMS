@@ -179,8 +179,14 @@ CREATE TABLE `quizzes` (
   `id` int(10) UNSIGNED NOT NULL,
   `course_id` int(10) UNSIGNED NOT NULL,
   `title` varchar(190) NOT NULL,
+  `description` text DEFAULT NULL,
   `pass_mark` tinyint(3) UNSIGNED NOT NULL DEFAULT 50,
   `max_attempts` tinyint(3) UNSIGNED NOT NULL DEFAULT 3,
+  `start_time` datetime DEFAULT NULL,
+  `end_time` datetime DEFAULT NULL,
+  `question_count` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
+  `total_marks` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
+  `source` enum('manual','csv') NOT NULL DEFAULT 'manual',
   `questions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`questions`)),
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ;

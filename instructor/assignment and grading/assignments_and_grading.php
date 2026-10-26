@@ -121,6 +121,10 @@ $pageTitle = 'Assignments and Quizzes';
         <div class="ins-alert ins-course-notice ins-course-notice--success" role="status">
             Assignment added successfully.
         </div>
+    <?php elseif (($_GET['added'] ?? '') === 'quiz'): ?>
+        <div class="ins-alert ins-course-notice ins-course-notice--success" role="status">
+            Quiz added successfully.
+        </div>
     <?php endif; ?>
 
     <!-- Totals -->

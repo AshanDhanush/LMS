@@ -608,12 +608,16 @@ if (courseForm instanceof HTMLFormElement) {
     searchInput.addEventListener('input', filterCards);
 })();
 
-/* Type switching and file checks for the Add Assignment or Quiz form. */
+/* Type switching, file checks and the quiz builder for the Add Assignment or Quiz form. */
 (() => {
     'use strict';
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
     const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx'];
+    const MAX_CSV_SIZE = 1024 * 1024; // 1 MB
+    const MAX_QUESTIONS = 50;
+    const MIN_OPTIONS = 4;
+    const MAX_OPTIONS = 5;
 
     const form = document.getElementById('assessmentForm');
     const typeSelect = document.getElementById('assessmentType');
@@ -626,24 +630,60 @@ if (courseForm instanceof HTMLFormElement) {
         return;
     }
 
-    /* ---- Show the panel for the selected type ---- */
+    const methodPanels = document.querySelectorAll('[data-quiz-method-panel]');
+    const methodRadios = document.querySelectorAll('input[name="quiz_method"]');
+    const csvInput = document.getElementById('quizCsv');
+    const csvMessage = document.getElementById('quizCsvMessage');
+    const questionList = document.getElementById('quizQuestions');
+    const emptyNote = document.getElementById('quizEmptyNote');
+    const totalsLine = document.getElementById('quizTotals');
+    const addMcqButton = document.getElementById('quizAddMcq');
+    const addEssayButton = document.getElementById('quizAddEssay');
+
+    let questionCounter = 0;
+
+    function selectedMethod() {
+        const checked = document.querySelector('input[name="quiz_method"]:checked');
+        return checked ? checked.value : 'manual';
+    }
+
+    /* Disabled fields are neither validated nor submitted, so a hidden
+       panel never blocks the form or sends stray values. */
+    function setPanelActive(panel, active) {
+        panel.hidden = !active;
+        panel.querySelectorAll('input, select, textarea').forEach((field) => {
+            field.disabled = !active;
+        });
+    }
 
     function showSelectedType() {
         const selected = typeSelect.value;
 
         panels.forEach((panel) => {
-            panel.hidden = panel.dataset.typePanel !== selected;
+            setPanelActive(panel, panel.dataset.typePanel === selected);
         });
 
         if (submitButton) {
-            submitButton.hidden = selected !== 'assignment';
+            submitButton.textContent = selected === 'quiz' ? 'Save quiz' : 'Save assignment';
+        }
+
+        if (selected === 'quiz') {
+            showSelectedMethod();
         }
     }
 
-    typeSelect.addEventListener('change', showSelectedType);
-    showSelectedType();
+    function showSelectedMethod() {
+        const method = selectedMethod();
 
-    /* ---- Check the chosen file ---- */
+        methodPanels.forEach((panel) => {
+            setPanelActive(panel, panel.dataset.quizMethodPanel === method);
+        });
+    }
+
+    typeSelect.addEventListener('change', showSelectedType);
+    methodRadios.forEach((radio) => radio.addEventListener('change', showSelectedMethod));
+
+    /* ---- Check the chosen files ---- */
 
     function setFileMessage(text) {
         if (fileMessage) {
@@ -675,17 +715,254 @@ if (courseForm instanceof HTMLFormElement) {
         });
     }
 
-    /* ---- Basic check and double-submit protection ---- */
+    if (csvInput) {
+        csvInput.addEventListener('change', () => {
+            csvMessage.textContent = '';
+
+            const file = csvInput.files && csvInput.files[0];
+            if (!file) {
+                return;
+            }
+
+            if (file.name.split('.').pop().toLowerCase() !== 'csv') {
+                csvMessage.textContent = 'The questions file must be a .csv file.';
+                csvInput.value = '';
+            } else if (file.size > MAX_CSV_SIZE) {
+                csvMessage.textContent = 'The CSV file must be 1 MB or smaller.';
+                csvInput.value = '';
+            }
+        });
+    }
+
+    /* ---- Manual question builder ---- */
+
+    function el(tag, attributes = {}, children = []) {
+        const node = document.createElement(tag);
+
+        Object.entries(attributes).forEach(([name, value]) => {
+            if (name === 'class') {
+                node.className = value;
+            } else if (name === 'text') {
+                node.textContent = value;
+            } else if (value === true) {
+                node.setAttribute(name, '');
+            } else if (value !== false && value !== null && value !== undefined) {
+                node.setAttribute(name, value);
+            }
+        });
+
+        children.forEach((child) => node.append(child));
+        return node;
+    }
+
+    function field(labelText, control, forId) {
+        return el('div', { class: 'ins-lesson-field' }, [
+            el('label', { for: forId, text: labelText }),
+            control,
+        ]);
+    }
+
+    function questionCards() {
+        return Array.from(questionList.querySelectorAll('.ins-quiz-q'));
+    }
+
+    /* Number the cards, keep the Add buttons and the totals up to date. */
+    function refreshBuilder() {
+        const cards = questionCards();
+
+        cards.forEach((card, position) => {
+            card.querySelector('.ins-quiz-q__number').textContent = 'Question ' + (position + 1);
+        });
+
+        if (emptyNote) {
+            emptyNote.hidden = cards.length > 0;
+        }
+
+        const full = cards.length >= MAX_QUESTIONS;
+        addMcqButton.disabled = full;
+        addEssayButton.disabled = full;
+
+        let total = 0;
+        cards.forEach((card) => {
+            total += parseInt(card.querySelector('.ins-quiz-q__marks').value, 10) || 0;
+        });
+
+        totalsLine.textContent = cards.length
+            ? cards.length + ' question' + (cards.length === 1 ? '' : 's') + ', ' + total + ' marks in total.'
+            : '';
+    }
+
+    function addOptionRow(card, index, optionIndex, text, checked) {
+        const row = el('div', { class: 'ins-quiz-option' });
+        const radioId = 'q' + index + 'c' + optionIndex;
+
+        row.append(
+            el('input', {
+                type: 'radio',
+                id: radioId,
+                name: 'quiz_questions[' + index + '][correct]',
+                value: String(optionIndex),
+                checked: checked,
+                'aria-label': 'Mark option ' + (optionIndex + 1) + ' as the correct answer',
+            }),
+            el('input', {
+                type: 'text',
+                name: 'quiz_questions[' + index + '][options][]',
+                maxlength: '500',
+                placeholder: 'Option ' + (optionIndex + 1) + (optionIndex >= MIN_OPTIONS ? ' (optional)' : ''),
+                required: optionIndex < MIN_OPTIONS,
+                value: text,
+                'aria-label': 'Option ' + (optionIndex + 1),
+            })
+        );
+
+        card.querySelector('.ins-quiz-options').append(row);
+    }
+
+    function buildQuestion(type, data = {}) {
+        const index = questionCounter++;
+        const isMcq = type === 'mcq';
+
+        const card = el('section', { class: 'ins-quiz-q ins-card' });
+
+        const removeButton = el('button', {
+            type: 'button',
+            class: 'ins-btn ins-btn--small ins-btn--danger',
+            text: 'Remove',
+        });
+
+        card.append(
+            el('header', { class: 'ins-quiz-q__head' }, [
+                el('div', {}, [
+                    el('strong', { class: 'ins-quiz-q__number', text: 'Question' }),
+                    el('span', { class: 'ins-quiz-q__type', text: isMcq ? 'Multiple choice' : 'Essay' }),
+                ]),
+                removeButton,
+            ]),
+            el('input', { type: 'hidden', name: 'quiz_questions[' + index + '][type]', value: type })
+        );
+
+        const textArea = el('textarea', {
+            id: 'q' + index + 'text',
+            name: 'quiz_questions[' + index + '][text]',
+            maxlength: '2000',
+            rows: '3',
+            required: true,
+        });
+        textArea.value = data.text || '';
+        card.append(field('Question', textArea, 'q' + index + 'text'));
+
+        const marksInput = el('input', {
+            type: 'number',
+            id: 'q' + index + 'marks',
+            class: 'ins-quiz-q__marks',
+            name: 'quiz_questions[' + index + '][marks]',
+            min: '1',
+            max: '100',
+            step: '1',
+            required: true,
+            value: data.marks || (isMcq ? '1' : '10'),
+        });
+        marksInput.addEventListener('input', refreshBuilder);
+        card.append(field('Marks', marksInput, 'q' + index + 'marks'));
+
+        if (isMcq) {
+            card.append(
+                el('p', { class: 'ins-quiz-hint', text: 'Enter 4 or 5 options and select the correct answer.' }),
+                el('div', { class: 'ins-quiz-options' })
+            );
+
+            const options = Array.isArray(data.options) ? data.options : [];
+            const correct = data.correct !== undefined && data.correct !== '' ? String(data.correct) : '';
+
+            for (let i = 0; i < MAX_OPTIONS; i += 1) {
+                addOptionRow(card, index, i, options[i] || '', correct === String(i));
+            }
+        } else {
+            const modelAnswer = el('textarea', {
+                id: 'q' + index + 'model',
+                name: 'quiz_questions[' + index + '][model_answer]',
+                maxlength: '5000',
+                rows: '3',
+                placeholder: 'Key points or a sample answer to help you mark this question',
+            });
+            modelAnswer.value = data.model_answer || '';
+            card.append(field('Model answer (optional)', modelAnswer, 'q' + index + 'model'));
+        }
+
+        removeButton.addEventListener('click', () => {
+            card.remove();
+            refreshBuilder();
+        });
+
+        questionList.append(card);
+        refreshBuilder();
+        return card;
+    }
+
+    if (questionList) {
+        addMcqButton.addEventListener('click', () => {
+            buildQuestion('mcq').querySelector('textarea').focus();
+        });
+
+        addEssayButton.addEventListener('click', () => {
+            buildQuestion('essay').querySelector('textarea').focus();
+        });
+
+        /* Put back what the instructor typed if the server sent the form back. */
+        try {
+            const initial = JSON.parse(document.getElementById('quizInitialQuestions').textContent || '[]');
+            if (Array.isArray(initial)) {
+                initial.forEach((question) => {
+                    if (question && (question.type === 'mcq' || question.type === 'essay')) {
+                        buildQuestion(question.type, question);
+                    }
+                });
+            }
+        } catch (error) {
+            /* Nothing to restore. */
+        }
+
+        refreshBuilder();
+    }
+
+    /* ---- Checks and double-submit protection ---- */
+
+    function quizProblem() {
+        if (selectedMethod() === 'csv') {
+            return csvInput && csvInput.files && csvInput.files.length ? '' : 'Please choose a CSV file.';
+        }
+
+        const cards = questionCards();
+        if (!cards.length) {
+            return 'Add at least one question.';
+        }
+
+        for (const card of cards) {
+            const isMcq = card.querySelector('.ins-quiz-options') !== null;
+            if (isMcq && !card.querySelector('.ins-quiz-option input[type="radio"]:checked')) {
+                const number = card.querySelector('.ins-quiz-q__number').textContent;
+                card.scrollIntoView({ block: 'center' });
+                return number + ': select the correct answer.';
+            }
+        }
+
+        return '';
+    }
 
     form.addEventListener('submit', (event) => {
-        if (typeSelect.value !== 'assignment') {
+        if (!form.reportValidity()) {
             event.preventDefault();
             return;
         }
 
-        if (!form.reportValidity()) {
-            event.preventDefault();
-            return;
+        if (typeSelect.value === 'quiz') {
+            const problem = quizProblem();
+            if (problem) {
+                event.preventDefault();
+                window.alert(problem);
+                return;
+            }
         }
 
         if (submitButton) {
@@ -693,4 +970,6 @@ if (courseForm instanceof HTMLFormElement) {
             submitButton.textContent = 'Saving...';
         }
     });
+
+    showSelectedType();
 })();

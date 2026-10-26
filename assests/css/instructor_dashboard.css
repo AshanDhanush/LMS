@@ -2842,3 +2842,128 @@ a.ins-btn--primary:hover {
 #assessmentSubmit[hidden] {
   display: none !important;
 }
+
+/* Quiz builder (Add assignment or quiz form) */
+[data-quiz-method-panel][hidden] {
+  display: none !important;
+}
+
+.ins-quiz-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+@media (min-width: 600px) {
+  .ins-quiz-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ins-quiz-method {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--n-border);
+  border-radius: var(--n-radius-base);
+  min-width: 0;
+}
+
+.ins-quiz-method legend {
+  padding: 0 6px;
+  color: var(--n-text);
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.ins-quiz-method__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .9rem;
+  cursor: pointer;
+}
+
+.ins-quiz-questions {
+  display: grid;
+  gap: 16px;
+}
+
+.ins-quiz-q {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.ins-quiz-q__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ins-quiz-q__number {
+  margin-right: 10px;
+}
+
+.ins-quiz-q__type {
+  padding: 3px 10px;
+  border-radius: var(--n-radius-full);
+  background: var(--n-primary-soft);
+  color: var(--n-primary-text);
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.ins-quiz-hint {
+  margin: 0;
+  color: var(--n-muted);
+  font-size: .85rem;
+}
+
+.ins-quiz-options {
+  display: grid;
+  gap: 10px;
+}
+
+.ins-quiz-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.ins-quiz-option input[type="text"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--n-border);
+  border-radius: var(--n-radius-base);
+  background: var(--n-surface);
+  color: var(--n-text);
+  font: inherit;
+  font-size: .9rem;
+}
+
+.ins-quiz-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.ins-quiz-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ins-quiz-total {
+  margin: 0;
+  color: var(--n-muted);
+  font-size: .875rem;
+  font-weight: 600;
+}

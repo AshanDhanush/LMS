@@ -1,0 +1,4 @@
+type,question,marks,option1,option2,option3,option4,option5,correct,model_answer
+mcq,Which language runs in the browser?,1,PHP,JavaScript,Python,SQL,,2,
+mcq,Which of these is a relational database?,2,MySQL,Redis,MongoDB,Memcached,Cassandra,1,
+essay,Explain the difference between GET and POST requests.,10,,,,,,,GET reads data and puts values in the URL; POST sends data in the body to create or change something.

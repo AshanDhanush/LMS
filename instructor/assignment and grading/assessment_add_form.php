@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__, 2) . '/includes/config.php';
+require_once dirname(__DIR__, 2) . '/includes/quiz_service.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -122,6 +123,17 @@ $values = [
     'max_mark'    => '100',
 ];
 
+$quizValues = [
+    'title'        => '',
+    'description'  => '',
+    'pass_mark'    => '50',
+    'max_attempts' => '3',
+    'start_time'   => '',
+    'end_time'     => '',
+    'method'       => 'manual',
+];
+$quizPostedQuestions = [];
+
 if ($isPost) {
     $values['type']        = (string) ($_POST['type'] ?? 'assignment');
     $values['title']       = trim((string) ($_POST['title'] ?? ''));
@@ -135,9 +147,144 @@ if ($isPost) {
         $errors[] = 'Your session expired. Please try again.';
     }
 
-    if ($values['type'] !== 'assignment') {
-        $errors[] = 'Only assignments can be added from this form for now.';
+    if (!in_array($values['type'], ['assignment', 'quiz'], true)) {
+        $errors[] = 'Please choose Assignment or Quiz.';
     }
+
+    if ($values['type'] === 'quiz') {
+        // ---------------- Quiz ----------------
+        $quizValues['title']        = trim((string) ($_POST['quiz_title'] ?? ''));
+        $quizValues['description']  = trim((string) ($_POST['quiz_description'] ?? ''));
+        $quizValues['pass_mark']    = trim((string) ($_POST['quiz_pass_mark'] ?? ''));
+        $quizValues['max_attempts'] = trim((string) ($_POST['quiz_max_attempts'] ?? ''));
+        $quizValues['start_time']   = trim((string) ($_POST['quiz_start_time'] ?? ''));
+        $quizValues['end_time']     = trim((string) ($_POST['quiz_end_time'] ?? ''));
+        $quizValues['method']       = (string) ($_POST['quiz_method'] ?? 'manual');
+
+        if (is_array($_POST['quiz_questions'] ?? null)) {
+            $quizPostedQuestions = array_values($_POST['quiz_questions']);
+        }
+
+        $quizTitleLength = mb_strlen($quizValues['title'], 'UTF-8');
+        if ($quizTitleLength < 1 || $quizTitleLength > 190) {
+            $errors[] = 'Quiz title is required and must be 190 characters or fewer.';
+        }
+
+        if (mb_strlen($quizValues['description'], 'UTF-8') > 5000) {
+            $errors[] = 'Description must be 5000 characters or fewer.';
+        }
+
+        $passMark = filter_var(
+            $quizValues['pass_mark'],
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 100]]
+        );
+        if ($passMark === false) {
+            $errors[] = 'Pass mark must be a whole number from 1 to 100 (percent).';
+        }
+
+        $maxAttempts = filter_var(
+            $quizValues['max_attempts'],
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 20]]
+        );
+        if ($maxAttempts === false) {
+            $errors[] = 'Maximum attempts must be a whole number from 1 to 20.';
+        }
+
+        // Start and end time are both optional. Empty = no limit on that side.
+        $quizStart = null;
+        $quizEnd   = null;
+
+        foreach (['start_time' => 'Start time', 'end_time' => 'End time'] as $field => $label) {
+            if ($quizValues[$field] === '') {
+                continue;
+            }
+
+            $parsed = DateTime::createFromFormat('Y-m-d\TH:i', $quizValues[$field]);
+            if (!$parsed || $parsed->format('Y-m-d\TH:i') !== $quizValues[$field]) {
+                $errors[] = "$label is not a valid date and time.";
+                continue;
+            }
+
+            if ($field === 'start_time') {
+                $quizStart = $parsed;
+            } else {
+                $quizEnd = $parsed;
+            }
+        }
+
+        if ($quizStart && $quizEnd && $quizEnd <= $quizStart) {
+            $errors[] = 'End time must be after the start time.';
+        }
+
+        if (!in_array($quizValues['method'], ['manual', 'csv'], true)) {
+            $errors[] = 'Please choose how to add the questions.';
+        }
+
+        $quizQuestions = [];
+
+        if ($quizValues['method'] === 'csv') {
+            $csv = $_FILES['quiz_csv'] ?? null;
+            $csvError = $csv['error'] ?? UPLOAD_ERR_NO_FILE;
+
+            if (!$csv || $csvError === UPLOAD_ERR_NO_FILE) {
+                $errors[] = 'Please choose a CSV file with the questions.';
+            } elseif ($csvError !== UPLOAD_ERR_OK) {
+                $errors[] = 'The CSV file could not be uploaded. Please try again.';
+            } elseif (strtolower(pathinfo((string) $csv['name'], PATHINFO_EXTENSION)) !== 'csv') {
+                $errors[] = 'The questions file must be a .csv file.';
+            } elseif ((int) $csv['size'] > QUIZ_CSV_MAX_SIZE) {
+                $errors[] = 'The CSV file must be 1 MB or smaller.';
+            } elseif (!is_uploaded_file($csv['tmp_name'])) {
+                $errors[] = 'The CSV file could not be uploaded. Please try again.';
+            } else {
+                $quizQuestions = quizBuildFromCsv($csv['tmp_name'], $errors);
+            }
+        } elseif ($quizValues['method'] === 'manual') {
+            $quizQuestions = quizBuildFromManual($_POST['quiz_questions'] ?? null, $errors);
+        }
+
+        if (!$errors) {
+            try {
+                $insertQuiz = $pdo->prepare(
+                    'INSERT INTO quizzes
+                        (course_id, title, description, pass_mark, max_attempts,
+                         start_time, end_time, question_count, total_marks, source, questions)
+                     VALUES
+                        (:course_id, :title, :description, :pass_mark, :max_attempts,
+                         :start_time, :end_time, :question_count, :total_marks, :source, :questions)'
+                );
+
+                $insertQuiz->execute([
+                    'course_id'      => $courseId,
+                    'title'          => $quizValues['title'],
+                    'description'    => $quizValues['description'] !== '' ? $quizValues['description'] : null,
+                    'pass_mark'      => $passMark,
+                    'max_attempts'   => $maxAttempts,
+                    'start_time'     => $quizStart ? $quizStart->format('Y-m-d H:i:s') : null,
+                    'end_time'       => $quizEnd ? $quizEnd->format('Y-m-d H:i:s') : null,
+                    'question_count' => count($quizQuestions),
+                    'total_marks'    => quizTotalMarks($quizQuestions),
+                    'source'         => $quizValues['method'],
+                    'questions'      => json_encode(
+                        $quizQuestions,
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    ),
+                ]);
+
+                $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
+
+                redirect('instructor/assignment and grading/assignments_and_grading.php?added=quiz');
+                exit;
+            } catch (PDOException | JsonException $exception) {
+                error_log('Quiz insert failed: ' . $exception->getMessage());
+                $errors[] = 'The quiz could not be saved. Please try again.';
+            }
+        }
+    }
+
+    if ($values['type'] === 'assignment') {
 
     // Title
     $titleLength = mb_strlen($values['title'], 'UTF-8');
@@ -259,6 +406,8 @@ if ($isPost) {
             }
         }
     }
+
+    } // end of assignment handling
 }
 
 $csrfToken = $_SESSION['assessment_form_csrf'];
@@ -419,13 +568,155 @@ $pageTitle = 'Add Assignment or Quiz';
                 </div>
             </div>
 
-            <!-- Quiz placeholder -->
+            <!-- Quiz fields -->
             <div
-                class="ins-assess-note"
+                class="ins-lesson-form"
                 data-type-panel="quiz"
                 <?= $values['type'] === 'quiz' ? '' : 'hidden' ?>
             >
-                The quiz form is not available yet. Choose Assignment to add one now.
+                <div class="ins-lesson-field">
+                    <label for="quizTitle">Quiz title</label>
+                    <input
+                        type="text"
+                        id="quizTitle"
+                        name="quiz_title"
+                        maxlength="190"
+                        required
+                        value="<?= assessmentFormEscape($quizValues['title']) ?>"
+                    >
+                </div>
+
+                <div class="ins-lesson-field">
+                    <label for="quizDescription">Description (optional)</label>
+                    <textarea
+                        id="quizDescription"
+                        name="quiz_description"
+                        maxlength="5000"
+                    ><?= assessmentFormEscape($quizValues['description']) ?></textarea>
+                </div>
+
+                <div class="ins-quiz-row">
+                    <div class="ins-lesson-field">
+                        <label for="quizPassMark">Pass mark (%)</label>
+                        <input
+                            type="number"
+                            id="quizPassMark"
+                            name="quiz_pass_mark"
+                            min="1"
+                            max="100"
+                            step="1"
+                            required
+                            value="<?= assessmentFormEscape($quizValues['pass_mark']) ?>"
+                        >
+                    </div>
+
+                    <div class="ins-lesson-field">
+                        <label for="quizMaxAttempts">Maximum attempts</label>
+                        <input
+                            type="number"
+                            id="quizMaxAttempts"
+                            name="quiz_max_attempts"
+                            min="1"
+                            max="20"
+                            step="1"
+                            required
+                            value="<?= assessmentFormEscape($quizValues['max_attempts']) ?>"
+                        >
+                    </div>
+                </div>
+
+                <div class="ins-quiz-row">
+                    <div class="ins-lesson-field">
+                        <label for="quizStartTime">Start time (optional)</label>
+                        <input
+                            type="datetime-local"
+                            id="quizStartTime"
+                            name="quiz_start_time"
+                            value="<?= assessmentFormEscape($quizValues['start_time']) ?>"
+                        >
+                    </div>
+
+                    <div class="ins-lesson-field">
+                        <label for="quizEndTime">End time (optional)</label>
+                        <input
+                            type="datetime-local"
+                            id="quizEndTime"
+                            name="quiz_end_time"
+                            value="<?= assessmentFormEscape($quizValues['end_time']) ?>"
+                        >
+                    </div>
+                </div>
+                <p class="ins-quiz-hint">Students can only take the quiz between these times. Leave a field empty for no limit.</p>
+
+                <fieldset class="ins-quiz-method">
+                    <legend>How do you want to add the questions?</legend>
+
+                    <label class="ins-quiz-method__option">
+                        <input
+                            type="radio"
+                            name="quiz_method"
+                            value="manual"
+                            <?= $quizValues['method'] === 'manual' ? 'checked' : '' ?>
+                        >
+                        <span>Add questions manually</span>
+                    </label>
+
+                    <label class="ins-quiz-method__option">
+                        <input
+                            type="radio"
+                            name="quiz_method"
+                            value="csv"
+                            <?= $quizValues['method'] === 'csv' ? 'checked' : '' ?>
+                        >
+                        <span>Upload a CSV file</span>
+                    </label>
+                </fieldset>
+
+                <!-- Method 1: CSV upload -->
+                <div class="ins-lesson-form" data-quiz-method-panel="csv" hidden>
+                    <div class="ins-lesson-field">
+                        <label for="quizCsv">Questions file (.csv)</label>
+                        <input type="file" id="quizCsv" name="quiz_csv" accept=".csv,text/csv">
+                        <small>
+                            Up to <?= (int) QUIZ_MAX_QUESTIONS ?> questions, 1 MB.
+                            <a href="<?= assessmentFormEscape(url('assests/templates/quiz_template.csv')) ?>" download>Download the template</a>
+                        </small>
+                        <p class="ins-lesson-message" id="quizCsvMessage" role="status" aria-live="polite"></p>
+                    </div>
+
+                    <div class="ins-assess-note">
+                        <strong>CSV columns:</strong>
+                        <code>type, question, marks, option1, option2, option3, option4, option5, correct, model_answer</code><br>
+                        <code>type</code> is <code>mcq</code> or <code>essay</code>.
+                        MCQ rows need option1 to option4 (option5 is optional) and
+                        <code>correct</code> as the option number (1 to 5) or letter (A to E).
+                        Essay rows leave the options and <code>correct</code> empty;
+                        <code>model_answer</code> is optional.
+                    </div>
+                </div>
+
+                <!-- Method 2: manual entry -->
+                <div class="ins-lesson-form" data-quiz-method-panel="manual" hidden>
+                    <div id="quizQuestions" class="ins-quiz-questions"></div>
+
+                    <p class="ins-assess-note" id="quizEmptyNote">
+                        No questions yet. Add a multiple choice or an essay question.
+                    </p>
+
+                    <div class="ins-quiz-add">
+                        <button type="button" class="ins-btn" id="quizAddMcq">+ Add MCQ question</button>
+                        <button type="button" class="ins-btn" id="quizAddEssay">+ Add essay question</button>
+                    </div>
+
+                    <p class="ins-quiz-total" id="quizTotals" aria-live="polite"></p>
+                </div>
+
+                <script type="application/json" id="quizInitialQuestions"><?=
+                    json_encode(
+                        $quizPostedQuestions,
+                        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE
+                    ) ?: '[]'
+                ?></script>
             </div>
 
             <div class="ins-lesson-form__actions">
@@ -437,9 +728,8 @@ $pageTitle = 'Add Assignment or Quiz';
                     type="submit"
                     class="ins-btn ins-btn--primary"
                     id="assessmentSubmit"
-                    <?= $values['type'] === 'assignment' ? '' : 'hidden' ?>
                 >
-                    Save assignment
+                    <?= $values['type'] === 'quiz' ? 'Save quiz' : 'Save assignment' ?>
                 </button>
             </div>
         </form>
