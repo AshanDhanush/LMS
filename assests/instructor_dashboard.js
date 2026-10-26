@@ -973,3 +973,17 @@ if (courseForm instanceof HTMLFormElement) {
 
     showSelectedType();
 })();
+
+
+/* Ask before deleting: any form with a data-confirm message. */
+(() => {
+    'use strict';
+
+    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (!window.confirm(form.dataset.confirm)) {
+                event.preventDefault();
+            }
+        });
+    });
+})();

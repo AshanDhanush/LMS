@@ -291,3 +291,131 @@ function quizTotalMarks(array $questions): int
 {
     return array_sum(array_map(static fn (array $q): int => (int) $q['marks'], $questions));
 }
+
+
+/**
+ * Validate the quiz fields of the add and edit forms.
+ *
+ * Always returns the typed values (so the form can be shown again) and, when
+ * $errors stays empty, the clean fields ready for the database.
+ *
+ * @param array<string,mixed> $post  usually $_POST
+ * @param array<string,mixed> $files usually $_FILES
+ * @param string[]            $errors
+ * @return array{values:array<string,string>,posted:array,clean:?array}
+ */
+function quizValidateInput(array $post, array $files, array &$errors): array
+{
+    $before = count($errors);
+
+    $values = [
+        'title'        => trim((string) ($post['quiz_title'] ?? '')),
+        'description'  => trim((string) ($post['quiz_description'] ?? '')),
+        'pass_mark'    => trim((string) ($post['quiz_pass_mark'] ?? '')),
+        'max_attempts' => trim((string) ($post['quiz_max_attempts'] ?? '')),
+        'start_time'   => trim((string) ($post['quiz_start_time'] ?? '')),
+        'end_time'     => trim((string) ($post['quiz_end_time'] ?? '')),
+        'method'       => (string) ($post['quiz_method'] ?? 'manual'),
+    ];
+    $posted = is_array($post['quiz_questions'] ?? null) ? array_values($post['quiz_questions']) : [];
+
+    $titleLength = mb_strlen($values['title'], 'UTF-8');
+    if ($titleLength < 1 || $titleLength > 190) {
+        $errors[] = 'Quiz title is required and must be 190 characters or fewer.';
+    }
+
+    if (mb_strlen($values['description'], 'UTF-8') > 5000) {
+        $errors[] = 'Description must be 5000 characters or fewer.';
+    }
+
+    $passMark = filter_var($values['pass_mark'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 100]]);
+    if ($passMark === false) {
+        $errors[] = 'Pass mark must be a whole number from 1 to 100 (percent).';
+    }
+
+    $maxAttempts = filter_var($values['max_attempts'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 20]]);
+    if ($maxAttempts === false) {
+        $errors[] = 'Maximum attempts must be a whole number from 1 to 20.';
+    }
+
+    // Start and end time are optional. Empty = no limit on that side.
+    $times = ['start_time' => null, 'end_time' => null];
+    foreach (['start_time' => 'Start time', 'end_time' => 'End time'] as $field => $label) {
+        if ($values[$field] === '') {
+            continue;
+        }
+        $parsed = DateTime::createFromFormat('!Y-m-d\TH:i', $values[$field]);
+        if (!$parsed || $parsed->format('Y-m-d\TH:i') !== $values[$field]) {
+            $errors[] = "$label is not a valid date and time.";
+            continue;
+        }
+        $times[$field] = $parsed;
+    }
+    if ($times['start_time'] && $times['end_time'] && $times['end_time'] <= $times['start_time']) {
+        $errors[] = 'End time must be after the start time.';
+    }
+
+    $questions = [];
+    if (!in_array($values['method'], ['manual', 'csv'], true)) {
+        $errors[] = 'Please choose how to add the questions.';
+    } elseif ($values['method'] === 'csv') {
+        $csv = $files['quiz_csv'] ?? null;
+        $csvError = $csv['error'] ?? UPLOAD_ERR_NO_FILE;
+
+        if (!$csv || $csvError === UPLOAD_ERR_NO_FILE) {
+            $errors[] = 'Please choose a CSV file with the questions.';
+        } elseif ($csvError !== UPLOAD_ERR_OK) {
+            $errors[] = 'The CSV file could not be uploaded. Please try again.';
+        } elseif (strtolower(pathinfo((string) $csv['name'], PATHINFO_EXTENSION)) !== 'csv') {
+            $errors[] = 'The questions file must be a .csv file.';
+        } elseif ((int) $csv['size'] > QUIZ_CSV_MAX_SIZE) {
+            $errors[] = 'The CSV file must be 1 MB or smaller.';
+        } elseif (!is_uploaded_file((string) $csv['tmp_name'])) {
+            $errors[] = 'The CSV file could not be uploaded. Please try again.';
+        } else {
+            $questions = quizBuildFromCsv((string) $csv['tmp_name'], $errors);
+        }
+    } else {
+        $questions = quizBuildFromManual($post['quiz_questions'] ?? null, $errors);
+    }
+
+    $clean = null;
+    if (count($errors) === $before) {
+        $clean = [
+            'title'          => $values['title'],
+            'description'    => $values['description'] !== '' ? $values['description'] : null,
+            'pass_mark'      => (int) $passMark,
+            'max_attempts'   => (int) $maxAttempts,
+            'start_time'     => $times['start_time'] ? $times['start_time']->format('Y-m-d H:i:s') : null,
+            'end_time'       => $times['end_time'] ? $times['end_time']->format('Y-m-d H:i:s') : null,
+            'question_count' => count($questions),
+            'total_marks'    => quizTotalMarks($questions),
+            'source'         => $values['method'],
+            'questions'      => json_encode($questions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+        ];
+    }
+
+    return ['values' => $values, 'posted' => $posted, 'clean' => $clean];
+}
+
+/** open / scheduled / closed / always, from the quiz start and end time. */
+function quizAvailability(?string $start, ?string $end, ?DateTimeInterface $now = null): string
+{
+    $now ??= new DateTimeImmutable();
+    $startAt = $start ? new DateTimeImmutable($start) : null;
+    $endAt   = $end ? new DateTimeImmutable($end) : null;
+
+    if ($startAt && $now < $startAt) {
+        return 'scheduled';
+    }
+    if ($endAt && $now > $endAt) {
+        return 'closed';
+    }
+    return ($startAt || $endAt) ? 'open' : 'always';
+}
+
+/** "2026-11-01 09:30:00" -> "2026-11-01T09:30" for <input type="datetime-local">. */
+function quizInputDateTime(?string $value): string
+{
+    return $value ? (new DateTimeImmutable($value))->format('Y-m-d\TH:i') : '';
+}

@@ -242,6 +242,14 @@ $pageTitle = 'Manage Course Curriculum';
 
 <a class="ins-skip" href="#main">Skip to content</a>
 
+<div class="ins-layout">
+
+    <?php require __DIR__ . '/../sidebar.php'; ?>
+
+    <div class="ins-body">
+
+        <?php $instructorHeaderTitle = 'Manage course curriculum'; require __DIR__ . '/../header.php'; ?>
+
 <main class="ins-main ins-curriculum" id="main">
 
     <!-- Header -->
@@ -655,6 +663,9 @@ $pageTitle = 'Manage Course Curriculum';
     </div>
 
 </main>
+
+    </div>
+</div>
 
 <script>
 window.lessonApiUrl = <?= json_encode(url('api/api_lesson.php')) ?>;

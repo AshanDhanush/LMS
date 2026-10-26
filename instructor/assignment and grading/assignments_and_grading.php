@@ -191,27 +191,42 @@ $pageTitle = 'Assignments and Quizzes';
 
                     <div class="ins-assess-card__stats">
 
-                        <div class="ins-assess-tile ins-assess-tile--assignment">
+                        <a class="ins-assess-tile ins-assess-tile--assignment" href="<?= assessmentsPageEscape(url(
+                            'instructor/assignment and grading/assessment_list.php?course_id='
+                            . (int) $course['id'] . '&type=assignment'
+                        )) ?>">
                             <span class="ins-assess-tile__value">
                                 <?= (int) $course['assignment_count'] ?>
                             </span>
                             <span class="ins-assess-tile__label">
                                 Assignment<?= (int) $course['assignment_count'] === 1 ? '' : 's' ?>
                             </span>
-                        </div>
+                        </a>
 
-                        <div class="ins-assess-tile ins-assess-tile--quiz">
+                        <a class="ins-assess-tile ins-assess-tile--quiz" href="<?= assessmentsPageEscape(url(
+                            'instructor/assignment and grading/assessment_list.php?course_id='
+                            . (int) $course['id'] . '&type=quiz'
+                        )) ?>">
                             <span class="ins-assess-tile__value">
                                 <?= (int) $course['quiz_count'] ?>
                             </span>
                             <span class="ins-assess-tile__label">
                                 Quiz<?= (int) $course['quiz_count'] === 1 ? '' : 'zes' ?>
                             </span>
-                        </div>
+                        </a>
 
                     </div>
 
                     <footer class="ins-assess-card__footer">
+                        <a
+                            class="ins-btn ins-btn--small"
+                            href="<?= assessmentsPageEscape(url(
+                                'instructor/assignment and grading/assessment_list.php?course_id='
+                                . (int) $course['id']
+                            )) ?>"
+                        >
+                            View all
+                        </a>
                         <a
                             class="ins-btn ins-btn--primary ins-btn--small"
                             href="<?= assessmentsPageEscape(url(

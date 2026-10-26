@@ -27,10 +27,14 @@ $sidebarPage = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $sidebarActive = match (true) {
     str_ends_with($sidebarPage, '/instructor/dashboard.php') => 'dashboard',
     str_ends_with($sidebarPage, '/instructor/courses/my_courses.php'),
+    str_ends_with($sidebarPage, '/instructor/courses/course_lesson.php'),
     str_ends_with($sidebarPage, '/instructor/courses/courses_edit_form.php') => 'courses',
     str_ends_with($sidebarPage, '/instructor/courses/coureses_add_form.php') => 'create-course',
     str_ends_with($sidebarPage, '/instructor/assignment and grading/assignments_and_grading.php'),
-    str_ends_with($sidebarPage, '/instructor/assignment and grading/assessment_add_form.php') => 'assignments',
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/assessment_add_form.php'),
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/assessment_list.php'),
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/quiz_edit_form.php'),
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/assignment_edit_form.php') => 'assignments',
     default => '',
 };
 

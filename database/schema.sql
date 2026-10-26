@@ -1,12 +1,3 @@
--- LMS database schema (structure only, no data)
--- Derived from phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Oct 26, 2026 at 10:38 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -51,6 +42,8 @@ CREATE TABLE `assignments` (
   `course_id` int(10) UNSIGNED NOT NULL,
   `title` varchar(190) NOT NULL,
   `description` text DEFAULT NULL,
+  `file_path` varchar(255) DEFAULT NULL,
+  `file_name` varchar(255) DEFAULT NULL,
   `due_date` datetime NOT NULL,
   `max_mark` smallint(5) UNSIGNED NOT NULL DEFAULT 100,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
