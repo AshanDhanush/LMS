@@ -29,13 +29,15 @@ $sidebarActive = match (true) {
     str_ends_with($sidebarPage, '/instructor/courses/my_courses.php'),
     str_ends_with($sidebarPage, '/instructor/courses/courses_edit_form.php') => 'courses',
     str_ends_with($sidebarPage, '/instructor/courses/coureses_add_form.php') => 'create-course',
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/assignments_and_grading.php'),
+    str_ends_with($sidebarPage, '/instructor/assignment and grading/assessment_add_form.php') => 'assignments',
     default => '',
 };
 
 $sidebarMenu = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'home', 'href' => 'instructor/dashboard.php'],
     ['key' => 'courses', 'label' => 'My courses', 'icon' => 'book', 'href' => 'instructor/courses/my_courses.php'],
-    ['key' => 'assignments', 'label' => 'Assignments & grading', 'icon' => 'clipboard', 'href' => 'instructor/assignments/assignments_and_grading.php', 'badge' => true],
+    ['key' => 'assignments', 'label' => 'Assignments & grading', 'icon' => 'clipboard', 'href' => 'instructor/assignment and grading/assignments_and_grading.php', 'badge' => true],
     ['key' => 'students', 'label' => 'Students & cohorts', 'icon' => 'users', 'href' => 'instructor/dashboard.php#enroll-title'],
     ['key' => 'analytics', 'label' => 'Analytics & reports', 'icon' => 'chart', 'href' => 'instructor/dashboard.php#teaching-stats'],
     ['key' => 'reviews', 'label' => 'Course reviews', 'icon' => 'star', 'href' => 'instructor/dashboard.php#course-rating'],

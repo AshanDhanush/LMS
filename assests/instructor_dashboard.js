@@ -572,3 +572,125 @@ if (courseForm instanceof HTMLFormElement) {
     }
   });
 })();
+
+
+  /* Course search for the Assignments and Quizzes page. */
+(() => {
+    'use strict';
+
+    const searchInput = document.getElementById('assessSearch');
+    const cards = document.querySelectorAll('[data-assess-card]');
+    const noResults = document.getElementById('assessNoResults');
+
+    if (!searchInput || !cards.length) {
+        return;
+    }
+
+    function filterCards() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visible = 0;
+
+        cards.forEach((card) => {
+            const title = card.dataset.assessTitle || '';
+            const matches = query === '' || title.includes(query);
+
+            card.hidden = !matches;
+            if (matches) {
+                visible++;
+            }
+        });
+
+        if (noResults) {
+            noResults.hidden = visible > 0;
+        }
+    }
+
+    searchInput.addEventListener('input', filterCards);
+})();
+
+/* Type switching and file checks for the Add Assignment or Quiz form. */
+(() => {
+    'use strict';
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx'];
+
+    const form = document.getElementById('assessmentForm');
+    const typeSelect = document.getElementById('assessmentType');
+    const panels = document.querySelectorAll('[data-type-panel]');
+    const submitButton = document.getElementById('assessmentSubmit');
+    const fileInput = document.getElementById('assignmentFile');
+    const fileMessage = document.getElementById('assignmentFileMessage');
+
+    if (!form || !typeSelect) {
+        return;
+    }
+
+    /* ---- Show the panel for the selected type ---- */
+
+    function showSelectedType() {
+        const selected = typeSelect.value;
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.typePanel !== selected;
+        });
+
+        if (submitButton) {
+            submitButton.hidden = selected !== 'assignment';
+        }
+    }
+
+    typeSelect.addEventListener('change', showSelectedType);
+    showSelectedType();
+
+    /* ---- Check the chosen file ---- */
+
+    function setFileMessage(text) {
+        if (fileMessage) {
+            fileMessage.textContent = text;
+        }
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            setFileMessage('');
+
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) {
+                return;
+            }
+
+            const extension = file.name.split('.').pop().toLowerCase();
+
+            if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                setFileMessage('Only PDF, DOC or DOCX files are allowed.');
+                fileInput.value = '';
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE) {
+                setFileMessage('The file must be 10 MB or smaller.');
+                fileInput.value = '';
+            }
+        });
+    }
+
+    /* ---- Basic check and double-submit protection ---- */
+
+    form.addEventListener('submit', (event) => {
+        if (typeSelect.value !== 'assignment') {
+            event.preventDefault();
+            return;
+        }
+
+        if (!form.reportValidity()) {
+            event.preventDefault();
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+        }
+    });
+})();

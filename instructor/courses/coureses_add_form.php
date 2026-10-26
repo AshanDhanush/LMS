@@ -70,51 +70,7 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
 
     <div class="ins-body">
 
-        <header class="ins-topbar">
-            <button class="ins-menu-toggle" type="button" aria-label="Open navigation" aria-controls="instructor-sidebar" aria-expanded="false" data-instructor-sidebar-toggle>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-            <span class="ins-topbar__title">Create a course</span>
-            <span class="ins-topbar__spacer"></span>
-
-            <a class="ins-user"
-               href="<?= courseFormEscape(url('profile')) ?>"
-               aria-label="View profile for <?= courseFormEscape((string) $user['name']) ?>">
-
-                <?php if (!empty($user['photo'])): ?>
-                    <img
-                        class="ins-user__avatar"
-                        src="<?= courseFormEscape(url((string) $user['photo'])) ?>"
-                        alt=""
-                        aria-hidden="true">
-                <?php else: ?>
-                    <span class="ins-user__avatar" aria-hidden="true">
-                        <?= courseFormEscape(
-                            mb_strtoupper(
-                                mb_substr((string) $user['name'], 0, 1, 'UTF-8'),
-                                'UTF-8'
-                            )
-                        ) ?>
-                    </span>
-                <?php endif; ?>
-
-                <span class="ins-user__text">
-                    <span class="ins-user__name">
-                        <?= courseFormEscape((string) $user['name']) ?>
-                    </span>
-                    <span class="ins-user__role">Instructor</span>
-                </span>
-            </a>
-
-            <button
-                class="ins-btn"
-                type="button"
-                id="signOut"
-                data-logout-url="<?= courseFormEscape(url('api/auth_api.php?action=logout')) ?>"
-                data-login-url="<?= courseFormEscape(url('index.php')) ?>">
-                Sign out
-            </button>
-        </header>
+        <?php $instructorHeaderTitle = 'Create a course'; require __DIR__ . '/../header.php'; ?>
 
         <main class="ins-main ins-course-create" id="main">
 

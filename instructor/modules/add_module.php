@@ -10,11 +10,28 @@ if (!$user || ($user['role'] ?? '') !== 'instructor') {
     exit;
 }
 
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if (
+    $_SERVER['REQUEST_METHOD'] === 'GET'
+    && isset($_GET['id'])
+    && preg_match('#/instructor/modules/add_module(?:\.php)?/?$#', (string) $requestPath) === 1
+) {
+    $legacyCourseId = filter_var($_GET['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($legacyCourseId !== false && $legacyCourseId !== null) {
+        redirect('instructor/modules/add_module/' . $legacyCourseId);
+    }
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-$courseId = filter_input(INPUT_GET, 'course_id', FILTER_VALIDATE_INT);
+$courseId = filter_input(
+    INPUT_GET,
+    'id',
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]]
+);
 
 if (!$courseId || $courseId < 1) {
     http_response_code(400);

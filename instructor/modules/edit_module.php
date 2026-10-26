@@ -14,6 +14,22 @@ if (!$user || ($user['role'] ?? '') !== 'instructor') {
     redirect(url('index.php'));
 }
 
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if (
+    $_SERVER['REQUEST_METHOD'] === 'GET'
+    && isset($_GET['course_id'], $_GET['id'])
+    && preg_match('#/instructor/modules/edit_module(?:\.php)?/?$#', (string) $requestPath) === 1
+) {
+    $legacyCourseId = filter_var($_GET['course_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $legacyModuleId = filter_var($_GET['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if (
+        $legacyCourseId !== false && $legacyCourseId !== null
+        && $legacyModuleId !== false && $legacyModuleId !== null
+    ) {
+        redirect('instructor/modules/edit_module/' . $legacyCourseId . '/' . $legacyModuleId);
+    }
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }

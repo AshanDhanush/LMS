@@ -166,24 +166,7 @@ $stmt = $pdo->prepare(
 
         <div class="ins-body">
 
-            <!-- ========== Top bar ========== -->
-            <header class="ins-topbar">
-                <button class="ins-menu-toggle" type="button" aria-label="Open navigation" aria-controls="instructor-sidebar" aria-expanded="false" data-instructor-sidebar-toggle>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
-                <span class="ins-topbar__title">My courses</span>
-                <span class="ins-topbar__spacer"></span>
-                <a class="ins-user" href="<?= h(url('profile.php')) ?>" aria-label="Open your profile, <?= h($user['name']) ?>">
-                    <span class="ins-user__avatar" aria-hidden="true"><?= h(initials($user['name'])) ?></span>
-                    <span class="ins-user__text">
-                        <span class="ins-user__name"><?= h($user['name']) ?></span>
-                        <span class="ins-user__role">Instructor</span>
-                    </span>
-                </a>
-                <button class="ins-btn" type="button" id="signOut"
-                        data-logout-url="<?= h(url('api/auth_api.php?action=logout')) ?>"
-                        data-login-url="<?= h(url('index.php')) ?>">Sign out</button>
-            </header>
+            <?php $instructorHeaderTitle = 'My courses'; require __DIR__ . '/../header.php'; ?>
 
             <main class="ins-main" id="main">
 

@@ -2579,3 +2579,266 @@ a.ins-btn--primary:hover {
                 width: 100%;
             }
         }
+/* ==========================================================================
+   Assignments and Quizzes page
+   Paste at the end of instructor_dashboard.css
+   ========================================================================== */
+
+/* Three totals instead of four */
+@media (min-width: 721px) {
+  .ins-assess-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ins-assess-toolbar {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.ins-assess-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+  min-width: 0;
+}
+
+/* Course cards */
+.ins-assess-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.ins-assess-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.ins-assess-card[hidden] {
+  display: none !important;
+}
+
+.ins-assess-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ins-assess-card__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ins-assess-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ins-assess-tile {
+  display: grid;
+  gap: 2px;
+  padding: 14px;
+  border-radius: var(--radius);
+}
+
+.ins-assess-tile__value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-assess-tile__label {
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.ins-assess-tile--assignment {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+
+.ins-assess-tile--quiz {
+  background: var(--points-soft);
+  color: var(--points);
+}
+
+@media (min-width: 600px) {
+  .ins-assess-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .ins-assess-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ins-assess-search {
+    max-width: none;
+  }
+}
+
+/* ==========================================================================
+   Assignments and Quizzes page
+   ========================================================================== */
+
+/* Three totals instead of four */
+@media (min-width: 721px) {
+  .ins-assess-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ins-assess-toolbar {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.ins-assess-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+  min-width: 0;
+}
+
+/* Course cards */
+.ins-assess-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.ins-assess-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.ins-assess-card[hidden] {
+  display: none !important;
+}
+
+.ins-assess-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ins-assess-card__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ins-assess-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ins-assess-tile {
+  display: grid;
+  gap: 2px;
+  padding: 14px;
+  border-radius: var(--radius);
+}
+
+.ins-assess-tile__value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ins-assess-tile__label {
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.ins-assess-tile--assignment {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+
+.ins-assess-tile--quiz {
+  background: var(--points-soft);
+  color: var(--points);
+}
+
+@media (min-width: 600px) {
+  .ins-assess-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .ins-assess-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ins-assess-search {
+    max-width: none;
+  }
+}
+
+/* Card footer with the add button */
+.ins-assess-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Add assignment or quiz form */
+.ins-assess-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+@media (min-width: 600px) {
+  .ins-assess-form-row {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+.ins-assess-note {
+  padding: 14px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: .9rem;
+}
+
+[data-type-panel][hidden],
+#assessmentSubmit[hidden] {
+  display: none !important;
+}

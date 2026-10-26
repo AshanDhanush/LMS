@@ -275,7 +275,7 @@ $pageTitle = 'Manage Course Curriculum';
             <a
                 class="ins-btn ins-btn--outline-primary"
                 href="<?= courseModulesPageEscape(
-                    url('instructor/modules/add_module.php?course_id=' . (int) $courseId)
+                    url('instructor/modules/add_module/' . (int) $courseId)
                 ) ?>"
             >
                 + Add Module
@@ -393,9 +393,9 @@ $pageTitle = 'Manage Course Curriculum';
                             <a
                                 class="ins-btn ins-btn--outline ins-btn--small"
                                 href="<?= courseModulesPageEscape(url(
-                                    'instructor/modules/edit_module.php?course_id='
+                                    'instructor/modules/edit_module/'
                                     . (int) $courseId
-                                    . '&id='
+                                    . '/'
                                     . (int) $group['id']
                                 )) ?>"
                             >
