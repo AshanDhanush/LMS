@@ -8,7 +8,6 @@ $user = assessmentRequireInstructor();
 
 $assessmentsPage = 'instructor/assignment and grading/assignments_and_grading.php';
 
-// Deleting is only ever done by a form POST, never by opening a link.
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     redirect($assessmentsPage);
     exit;
@@ -42,7 +41,6 @@ try {
         );
         $delete->execute(['id' => $id, 'course_id' => $courseId, 'instructor' => (int) $user['id']]);
     } else {
-        // Find the files first: the database rows can be removed, the files cannot be found afterwards.
         $find = $pdo->prepare(
             'SELECT a.file_path
              FROM assignments a

@@ -3,25 +3,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
 
-
-/* ==========================================================================
-   Only an instructor may see this page
-   ========================================================================== */
 $user = currentUser();
 
 if ($user === null) {
-    redirect('index.php');                              // not signed in: go to the login page
+    redirect('index.php');                              
 }
 if ($user['role'] !== 'instructor') {
-    redirect(dashboardPath($user['role']));             // another role: send them to their own dashboard
+    redirect(dashboardPath($user['role']));           
 }
 
 
-/* ==========================================================================
-   Functions used only on this page
-   ========================================================================== */
-
-/** Escape text for HTML. Use on EVERY value you print. */
 function h(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -35,7 +26,6 @@ function initials(string $name): string
     return mb_strtoupper($first . $last) ?: '?';
 }
 
-/** "5 min ago", "3 hours ago" ... from a number of minutes (counted by the database clock) */
 function ago(int $minutes): string
 {
     if ($minutes < 1)    return 'Just now';
@@ -46,13 +36,11 @@ function ago(int $minutes): string
     return $n . ($n === 1 ? ' week ago' : ' weeks ago');
 }
 
-/** Each course gets one of five tag colours, always the same one */
 function tagClass(int $courseId): string
 {
     return 'ins-tag--' . ($courseId % 5);
 }
 
-/** Small inline icons (no icon library needed) */
 function ico(string $name): string
 {
     static $paths = [
@@ -73,12 +61,9 @@ function ico(string $name): string
 
 
 $newCourseHref = 'instructor/courses/coureses_add_form.php';
-$exportHref    = 'instructor/dashboard.php#sub-title';
+$exportHref    = 'instructor/reports.php?report=gradebook';
 
 
-/* ==========================================================================
-   Load the numbers (every query is limited to THIS instructor's courses)
-   ========================================================================== */
 $instructorId = (int) $user['id'];
 $filter = in_array($_GET['filter'] ?? '', ['urgent', 'late'], true) ? $_GET['filter'] : 'all';
 
@@ -116,7 +101,7 @@ try {
     $stmt->execute([$instructorId]);
     $ratingStats = $stmt->fetch();
 
-    // Submissions that have no mark yet. "Urgent" = waiting more than 48 hours. "Late" = sent after the due date.
+   
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) AS total,
                 COALESCE(SUM(s.submitted_at < NOW() - INTERVAL 48 HOUR), 0) AS urgent,
@@ -176,7 +161,7 @@ try {
     $stmt->execute([$instructorId]);
     $recentEnrollments = $stmt->fetchAll();
 
-    // Latest comments from other people (students) on this instructor's lessons
+    
     $stmt = $pdo->prepare(
         'SELECT cm.body, u.name, c.id AS course_id, c.title AS course,
                 TIMESTAMPDIFF(MINUTE, cm.created_at, NOW()) AS mins_ago
@@ -235,7 +220,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
 
             <main class="ins-main" id="main">
 
-                <!-- ========== Welcome ========== -->
+                
                 <section class="ins-hero">
                     <div>
                         <h1>Welcome back, <?= h($firstName) ?></h1>
@@ -262,7 +247,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
                 </div>
                 <?php else: ?>
 
-                <!-- ========== Key numbers ========== -->
+               
                 <section class="ins-stats" id="teaching-stats" aria-label="Key numbers">
                     <article class="ins-stat">
                         <div class="ins-stat__top">

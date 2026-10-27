@@ -27,7 +27,6 @@ $sidebarPage = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $sidebarActive = match (true) {
     str_ends_with($sidebarPage, '/instructor/dashboard.php') => 'dashboard',
     str_ends_with($sidebarPage, '/instructor/courses/my_courses.php'),
-    str_ends_with($sidebarPage, '/instructor/courses/course_lesson.php'),
     str_ends_with($sidebarPage, '/instructor/courses/courses_edit_form.php') => 'courses',
     str_ends_with($sidebarPage, '/instructor/courses/coureses_add_form.php') => 'create-course',
     str_ends_with($sidebarPage, '/instructor/assignment and grading/assignments_and_grading.php'),
@@ -35,6 +34,8 @@ $sidebarActive = match (true) {
     str_ends_with($sidebarPage, '/instructor/assignment and grading/assessment_list.php'),
     str_ends_with($sidebarPage, '/instructor/assignment and grading/quiz_edit_form.php'),
     str_ends_with($sidebarPage, '/instructor/assignment and grading/assignment_edit_form.php') => 'assignments',
+    str_ends_with($sidebarPage, '/instructor/reports.php'),
+    str_ends_with($sidebarPage, '/instructor/gradebook.php') => 'analytics',
     default => '',
 };
 
@@ -43,7 +44,7 @@ $sidebarMenu = [
     ['key' => 'courses', 'label' => 'My courses', 'icon' => 'book', 'href' => 'instructor/courses/my_courses.php'],
     ['key' => 'assignments', 'label' => 'Assignments & grading', 'icon' => 'clipboard', 'href' => 'instructor/assignment and grading/assignments_and_grading.php', 'badge' => true],
     ['key' => 'students', 'label' => 'Students & cohorts', 'icon' => 'users', 'href' => 'instructor/dashboard.php#enroll-title'],
-    ['key' => 'analytics', 'label' => 'Analytics & reports', 'icon' => 'chart', 'href' => 'instructor/dashboard.php#teaching-stats'],
+    ['key' => 'analytics', 'label' => 'Analytics & reports', 'icon' => 'chart', 'href' => 'instructor/reports.php'],
     ['key' => 'reviews', 'label' => 'Course reviews', 'icon' => 'star', 'href' => 'instructor/dashboard.php#course-rating'],
     ['key' => 'settings', 'label' => 'Settings', 'icon' => 'gear', 'href' => 'profile.php#security'],
 ];

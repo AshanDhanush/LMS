@@ -4,11 +4,6 @@ require_once dirname(__DIR__, 2) . '/includes/config.php';
 require_once dirname(__DIR__, 2) . '/includes/quiz_service.php';
 require_once dirname(__DIR__, 2) . '/includes/assignment_service.php';
 
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
 
 $user = currentUser();
 
@@ -24,11 +19,7 @@ if (empty($_SESSION['assessment_form_csrf'])) {
     $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
 }
 
-/*
-|--------------------------------------------------------------------------
-| Helper functions
-|--------------------------------------------------------------------------
-*/
+
 
 if (!function_exists('assessmentFormEscape')) {
     function assessmentFormEscape(mixed $value): string
@@ -41,19 +32,9 @@ if (!function_exists('assessmentFormEscape')) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Settings
-|--------------------------------------------------------------------------
-*/
+
 
 $assessmentsPageUrl = url('instructor/assignment and grading/assignments_and_grading.php');
-
-/*
-|--------------------------------------------------------------------------
-| Validate course ID
-|--------------------------------------------------------------------------
-*/
 
 $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
 
@@ -70,11 +51,7 @@ if (!$courseId) {
 
 $pdo = db();
 
-/*
-|--------------------------------------------------------------------------
-| Verify course ownership
-|--------------------------------------------------------------------------
-*/
+
 
 $stmt = $pdo->prepare(
     'SELECT id, title
@@ -96,11 +73,7 @@ if (!$course) {
     exit('Course not found or you do not own it.');
 }
 
-/*
-|--------------------------------------------------------------------------
-| Handle the form
-|--------------------------------------------------------------------------
-*/
+
 
 $errors = [];
 
@@ -137,7 +110,7 @@ if ($isPost) {
     }
 
     if ($values['type'] === 'quiz') {
-        // ---------------- Quiz ----------------
+
         $quiz = quizValidateInput($_POST, $_FILES, $errors);
         $quizValues = $quiz['values'];
         $quizPostedQuestions = $quiz['posted'];
@@ -165,7 +138,7 @@ if ($isPost) {
             }
         }
     } elseif ($values['type'] === 'assignment') {
-        // ---------------- Assignment ----------------
+      
         $assignment = assignmentValidateInput($_POST, $_FILES['assignment_file'] ?? null, $errors);
         $values = ['type' => 'assignment'] + $assignment['values'];
 
@@ -202,7 +175,7 @@ if ($isPost) {
                         . $courseId . '&type=assignment&added=assignment');
                     exit;
                 } catch (PDOException $exception) {
-                    // Do not leave an orphan file if the database insert fails.
+             
                     if ($stored) {
                         assessmentDeleteStoredFile($stored['path']);
                     }
@@ -289,7 +262,7 @@ $pageTitle = 'Add Assignment or Quiz';
             <input type="hidden" name="course_id" value="<?= (int) $courseId ?>">
             <input type="hidden" name="csrf_token" value="<?= assessmentFormEscape($csrfToken) ?>">
 
-            <!-- Type -->
+       
             <div class="ins-lesson-field">
                 <label for="assessmentType">What do you want to add?</label>
                 <select id="assessmentType" name="type">
@@ -304,7 +277,7 @@ $pageTitle = 'Add Assignment or Quiz';
                 </select>
             </div>
 
-            <!-- Assignment fields -->
+         
             <div
                 class="ins-lesson-form"
                 data-type-panel="assignment"
@@ -373,7 +346,6 @@ $pageTitle = 'Add Assignment or Quiz';
                 </div>
             </div>
 
-            <!-- Quiz fields -->
             <div
                 class="ins-lesson-form"
                 data-type-panel="quiz"
