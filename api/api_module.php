@@ -1,7 +1,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/includes/config.php';
-require_once dirname(__DIR__) . '/includes/lesson_service.php';
+require_once __DIR__ . '/api_lesson_service.php';
 
 function moduleApiResponse(int $statusCode, array $data): void
 {

@@ -3144,16 +3144,6 @@ a.ins-assess-tile:focus-visible {
   margin: 0 0 16px;
 }
 
-.ins-reports {
-  gap: 24px;
-}
-
-.ins-reports > .ins-curr-header,
-.ins-reports > .ins-report-picker,
-.ins-reports > .ins-assess-tabs {
-  margin-bottom: 0;
-}
-
 .ins-report-picker select {
   min-height: 38px;
   max-width: 100%;
@@ -3234,4 +3224,132 @@ a.ins-assess-tile:focus-visible {
   height: 100%;
   border-radius: 999px;
   background: var(--primary);
+}
+
+
+/* ==========================================================================
+   Students and cohorts
+   ========================================================================== */
+
+.ins-people-box {
+  padding: 14px 18px;
+}
+
+.ins-people-box > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary-text);
+}
+
+.ins-people-box > form,
+.ins-people-box > p,
+.ins-people-box > dl {
+  margin-top: 14px;
+}
+
+.ins-people-pick {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ins-inline-form {
+  display: inline;
+  margin: 0;
+}
+
+.ins-table__actions {
+  white-space: nowrap;
+}
+
+.ins-report-picker input[type="search"] {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+a.ins-chip {
+  text-decoration: none;
+}
+
+
+/* ==========================================================================
+   Course reviews
+   ========================================================================== */
+
+.ins-review-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+@media (min-width: 720px) {
+  .ins-review-summary {
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);
+    align-items: center;
+  }
+}
+
+.ins-review-summary__score p {
+  margin: 4px 0;
+}
+
+.ins-review-bars {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ins-review-bars a {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ins-review-bars a:hover,
+.ins-review-bars a.is-current {
+  background: var(--primary-soft);
+}
+
+.ins-review-bars .ins-report-bar {
+  margin: 0;
+}
+
+.ins-review-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  text-align: right;
+}
+
+.ins-review-reply {
+  padding: 12px 14px;
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  overflow-wrap: anywhere;
+}
+
+.ins-review-reply p {
+  margin: 0 0 4px;
+}
+
+.ins-review-pages {
+  justify-content: center;
+  border-bottom: 0;
 }

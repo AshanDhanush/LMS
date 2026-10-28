@@ -1,7 +1,7 @@
 <?php
 
 require_once dirname(__DIR__, 2) . '/includes/config.php';
-require_once dirname(__DIR__, 2) . '/includes/quiz_service.php';
+require_once dirname(__DIR__, 2) . '/api/api_quiz_service.php';
 require_once dirname(__DIR__, 2) . '/includes/assessment_common.php';
 
 $user = assessmentRequireInstructor();

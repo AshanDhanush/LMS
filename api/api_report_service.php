@@ -2,17 +2,6 @@
 
 declare(strict_types=1);
 
-/*
-|--------------------------------------------------------------------------
-| Report queries for the instructor dashboard.
-|
-| The report pages and the CSV export both call these functions, so the
-| numbers on screen and in the downloaded file are always the same.
-| Every function is limited to courses that belong to the instructor.
-|--------------------------------------------------------------------------
-*/
-
-/** Courses of this instructor (for the course picker). */
 function reportCourses(PDO $pdo, int $instructorId): array
 {
     $stmt = $pdo->prepare(
@@ -199,7 +188,7 @@ function reportQuizResults(PDO $pdo, int $courseId, ?int $quizId = null): array
     $stmt->execute(['c' => $courseId]);
     $summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $sql = 'SELECT qa.id, qa.quiz_id, q.title AS quiz, u.name, u.email,
+    $sql = 'SELECT qa.id, qa.quiz_id, qa.user_id, q.title AS quiz, u.name, u.email,
                    qa.score, qa.total_marks, qa.passed, qa.attempted_at
             FROM quiz_attempts qa
             JOIN quizzes q ON q.id = qa.quiz_id

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/assessment_common.php';
-require_once __DIR__ . '/../includes/report_service.php';
+require_once __DIR__ . '/../api/api_report_service.php';
 
 $user = assessmentRequireInstructor();
 $pdo  = db();
@@ -22,6 +22,41 @@ if (!isset($reportKeys[$report])) {
     $report = 'progress';
 }
 
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $postedReport = (string) ($_POST['report'] ?? $report);
+    if (!isset($reportKeys[$postedReport])) {
+        $postedReport = 'progress';
+    }
+
+    $postedCourseId = filter_var($_POST['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $path = 'instructor/reports/' . $postedReport;
+    if ($postedCourseId) {
+        $path .= '/' . $postedCourseId;
+    }
+    redirect($path, 303);
+}
+
+// Send older query-string report links to their clean URL equivalents.
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if (
+    !empty($_SERVER['QUERY_STRING']) &&
+    is_string($requestPath) &&
+    preg_match('~(?:^|/)instructor/reports(?:\.php)?/?$~', $requestPath)
+) {
+    $legacyCourseId = filter_var($_GET['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $legacyPath = 'instructor/reports/' . $report;
+    if ($legacyCourseId) {
+        $legacyPath .= '/' . $legacyCourseId;
+    }
+    if ($report === 'quizzes') {
+        $legacyQuizId = filter_var($_GET['quiz_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($legacyCourseId && $legacyQuizId) {
+            $legacyPath .= '/' . $legacyQuizId;
+        }
+    }
+    redirect($legacyPath, 301);
+}
+
 $courses = reportCourses($pdo, $instructorId);
 
 // Use the chosen course, otherwise the first one.
@@ -37,11 +72,11 @@ if ($course === null && $courses && $report !== 'awaiting') {
 }
 $courseId = $course ? (int) $course['id'] : 0;
 
-$reportUrl = static fn (string $key, int $cid): string => url(
-    'instructor/reports.php?report=' . $key . ($cid ? '&course_id=' . $cid : '')
-);
+$reportPath = static fn (string $key, int $cid): string =>
+    'instructor/reports/' . $key . ($cid ? '/' . $cid : '');
+$reportUrl = static fn (string $key, int $cid): string => url($reportPath($key, $cid));
 $exportUrl = static fn (string $key, int $cid): string => url(
-    'instructor/export-csv.php?report=' . $key . '&course_id=' . $cid
+    'instructor/export-csv/' . $key . '/' . $cid
 );
 $e = static fn (mixed $v): string => assessmentFormEscape($v);
 $pct = static fn ($v): string => $v === null ? '–' : number_format((float) $v, 1) . '%';
@@ -112,7 +147,7 @@ $pageTitle = 'Analytics & reports';
         </div>
     <?php else: ?>
 
-        <form method="get" class="ins-report-picker">
+        <form method="post" action="<?= $e(url('instructor/reports/' . $report)) ?>" class="ins-report-picker">
             <input type="hidden" name="report" value="<?= $e($report) ?>">
             <label for="reportCourse">Course</label>
             <select id="reportCourse" name="course_id">
@@ -309,7 +344,7 @@ $pageTitle = 'Analytics & reports';
                                     <td class="ins-table__num"><?= $e($pct($q['highest'] === null ? null : round((float) $q['highest'], 1))) ?></td>
                                     <td class="ins-table__num"><?= $e($pct(reportPercent((int) $q['passed'], (int) $q['attempts']))) ?></td>
                                     <td class="ins-table__actions">
-                                        <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/reports.php?report=quizzes&course_id=' . $courseId . '&quiz_id=' . (int) $q['id'])) ?>">History</a>
+                                        <a class="ins-btn ins-btn--small" href="<?= $e(url($reportPath('quizzes', $courseId) . '/' . (int) $q['id'])) ?>">History</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -473,3 +473,41 @@ img.admin-user__avatar { object-fit: cover; }
 @media (prefers-reduced-motion: reduce) {
   .admin * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* ---------- Admin courses ---------- */
+.admin-user-form__field--wide { grid-column: 1 / -1; }
+.admin-user-form__field textarea {
+  width: 100%; min-height: 110px; padding: 10px 12px; resize: vertical;
+  border: 1px solid var(--a-border); border-radius: var(--radius);
+  background: var(--a-surface); color: var(--a-text); font: inherit;
+}
+.admin-user-form__field textarea:focus {
+  border-color: var(--focus); outline: 3px solid var(--primary-soft);
+}
+.admin-user-form-card details > summary { cursor: pointer; list-style: none; }
+.admin-user-form-card details > summary::-webkit-details-marker { display: none; }
+.admin-user-form-card details > summary h2::before { content: "+ "; }
+.admin-user-form-card details[open] > summary h2::before { content: "\2212  "; }
+.admin-filter-form {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; align-items: end; margin: 0 0 16px;
+}
+.admin-filter-form input, .admin-filter-form select {
+  width: 100%; min-height: 42px; padding: 8px 12px;
+  border: 1px solid var(--a-border); border-radius: var(--radius);
+  background: var(--a-surface); color: var(--a-text); font: inherit;
+}
+.admin-filter-form__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.admin-actions form { margin: 0; }
+.admin-status-select {
+  min-height: 36px; padding: 0 10px; border: 1px solid var(--a-border);
+  border-radius: var(--radius); background: var(--a-surface); color: var(--a-text);
+  font: inherit; cursor: pointer;
+}
+.admin-status-select:focus { border-color: var(--focus); outline: 3px solid var(--primary-soft); }
+.admin-btn[disabled] { opacity: .5; cursor: not-allowed; }
+.admin-pager {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 12px; margin-top: 16px;
+}

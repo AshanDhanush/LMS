@@ -61,7 +61,7 @@ function ico(string $name): string
 
 
 $newCourseHref = 'instructor/courses/coureses_add_form.php';
-$exportHref    = 'instructor/reports.php?report=gradebook';
+$exportHref    = 'instructor/reports/gradebook';
 
 
 $instructorId = (int) $user['id'];
