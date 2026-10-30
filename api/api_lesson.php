@@ -2,6 +2,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/includes/config.php';
+require_once __DIR__ . '/data_cleanup.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -230,8 +231,8 @@ try {
     }
 
     if ($action === 'delete') {
-        $stmt = $pdo->prepare('DELETE FROM lessons WHERE id = :id');
-        $stmt->execute(['id' => $lessonId]);
+        // Removes the lesson with its progress and comments in one transaction.
+        dataCleanupDeleteLesson($pdo, (int) $lessonId);
 
         foreach (array_unique(array_filter([
             $existing['file_path'] ?? null,

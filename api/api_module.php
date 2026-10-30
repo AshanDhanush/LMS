@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/includes/config.php';
 require_once __DIR__ . '/api_lesson_service.php';
+require_once __DIR__ . '/data_cleanup.php';
 
 function moduleApiResponse(int $statusCode, array $data): void
 {
@@ -148,6 +149,9 @@ if ($action === 'delete') {
             'course_id' => $courseId,
         ]);
         $lessonFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Progress, comments and "last lesson" markers of those lessons (no foreign keys do it for us).
+        dataCleanupModuleLessonChildren($pdo, $moduleId, $courseId);
 
         $stmt = $pdo->prepare(
             'DELETE FROM lessons

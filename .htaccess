@@ -15,6 +15,7 @@ RewriteRule ^admin/user-profile/?$ admin/user-profile.php [L]
 RewriteRule ^instructor/reports/quizzes/([0-9]+)/([0-9]+)/?$ instructor/reports.php?report=quizzes&course_id=$1&quiz_id=$2 [L,QSA]
 RewriteRule ^instructor/reports/(progress|gradebook|students|quizzes|awaiting)/([0-9]+)/?$ instructor/reports.php?report=$1&course_id=$2 [L,QSA]
 RewriteRule ^instructor/reports/(progress|gradebook|students|quizzes|awaiting)/?$ instructor/reports.php?report=$1 [L,QSA]
+RewriteRule ^instructor/reports/.+/?$ - [R=404,L]
 RewriteRule ^instructor/export-csv/cohort/([0-9]+)/?$ instructor/export-csv.php?report=cohort&cohort_id=$1 [L,QSA]
 RewriteRule ^instructor/export-csv/(gradebook|students|progress|quiz_attempts|reviews)/([0-9]+)/?$ instructor/export-csv.php?report=$1&course_id=$2 [L,QSA]
 

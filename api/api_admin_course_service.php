@@ -12,6 +12,8 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 */
 
+require_once __DIR__ . '/../api/data_cleanup.php';   // deletes children by hand (no foreign keys)
+
 const ADMIN_COURSE_PER_PAGE = 15;
 
 const ADMIN_COURSE_SORTS = [
@@ -326,38 +328,18 @@ function adminCourseSetStatus(PDO $pdo, int $courseId, string $status): ?string
 }
 
 /**
- * Delete a course. The database removes its lessons, modules, enrolments,
- * assignments, submissions, quizzes, attempts and cohorts. The uploaded files
- * of those rows are collected first and removed after the delete succeeds.
+ * Delete a course and everything inside it (see api/data_cleanup.php). The
+ * uploaded files are listed first and removed after the rows are gone.
  */
 function adminCourseDelete(PDO $pdo, int $courseId): bool
 {
-    $files = [];
-    $collect = static function (string $sql) use ($pdo, $courseId, &$files): void {
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['id' => $courseId]);
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $path) {
-            if (is_string($path) && $path !== '') {
-                $files[$path] = true;
-            }
-        }
-    };
+    $files = dataCleanupCourseFiles($pdo, $courseId);
 
-    $collect('SELECT thumbnail FROM courses WHERE id = :id');
-    $collect('SELECT file_path FROM lessons WHERE course_id = :id');
-    $collect('SELECT pdf_path FROM lessons WHERE course_id = :id');
-    $collect('SELECT powerpoint_path FROM lessons WHERE course_id = :id');
-    $collect('SELECT file_path FROM assignments WHERE course_id = :id');
-    $collect('SELECT s.file_path FROM submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.course_id = :id');
-
-    $delete = $pdo->prepare('DELETE FROM courses WHERE id = :id');
-    $delete->execute(['id' => $courseId]);
-
-    if ($delete->rowCount() === 0) {
+    if (!dataCleanupDeleteCourse($pdo, $courseId)) {
         return false;
     }
 
-    foreach (array_keys($files) as $path) {
+    foreach ($files as $path) {
         assessmentDeleteStoredFile($path);
     }
 

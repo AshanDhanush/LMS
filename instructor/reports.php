@@ -9,6 +9,14 @@ require_once __DIR__ . '/../api/api_report_service.php';
 $user = assessmentRequireInstructor();
 $pdo  = db();
 $instructorId = (int) $user['id'];
+$positiveInt = static function (mixed $value): ?int {
+    if (!is_string($value) && !is_int($value)) {
+        return null;
+    }
+
+    $parsed = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    return $parsed === false ? null : $parsed;
+};
 
 $reportKeys = [
     'progress'  => 'Progress & grades',
@@ -17,18 +25,20 @@ $reportKeys = [
     'quizzes'   => 'Quiz results',
     'awaiting'  => 'Awaiting grading',
 ];
-$report = (string) ($_GET['report'] ?? 'progress');
+$requestedReport = $_GET['report'] ?? null;
+$report = is_string($requestedReport) ? $requestedReport : 'progress';
 if (!isset($reportKeys[$report])) {
     $report = 'progress';
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $postedReport = (string) ($_POST['report'] ?? $report);
+    $postedReportValue = $_POST['report'] ?? null;
+    $postedReport = is_string($postedReportValue) ? $postedReportValue : $report;
     if (!isset($reportKeys[$postedReport])) {
         $postedReport = 'progress';
     }
 
-    $postedCourseId = filter_var($_POST['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $postedCourseId = $positiveInt($_POST['course_id'] ?? null);
     $path = 'instructor/reports/' . $postedReport;
     if ($postedCourseId) {
         $path .= '/' . $postedCourseId;
@@ -43,13 +53,13 @@ if (
     is_string($requestPath) &&
     preg_match('~(?:^|/)instructor/reports(?:\.php)?/?$~', $requestPath)
 ) {
-    $legacyCourseId = filter_var($_GET['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    $legacyCourseId = $positiveInt($_GET['course_id'] ?? null);
     $legacyPath = 'instructor/reports/' . $report;
     if ($legacyCourseId) {
         $legacyPath .= '/' . $legacyCourseId;
     }
     if ($report === 'quizzes') {
-        $legacyQuizId = filter_var($_GET['quiz_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $legacyQuizId = $positiveInt($_GET['quiz_id'] ?? null);
         if ($legacyCourseId && $legacyQuizId) {
             $legacyPath .= '/' . $legacyQuizId;
         }
@@ -60,7 +70,7 @@ if (
 $courses = reportCourses($pdo, $instructorId);
 
 // Use the chosen course, otherwise the first one.
-$courseId = filter_var($_GET['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$courseId = $positiveInt($_GET['course_id'] ?? null);
 $course = null;
 foreach ($courses as $candidate) {
     if ($courseId && (int) $candidate['id'] === (int) $courseId) {
@@ -90,8 +100,16 @@ if ($courseId) {
     } elseif ($report === 'gradebook') {
         $gradebook = reportGradebook($pdo, $courseId);
     } elseif ($report === 'quizzes') {
-        $quizFilter = filter_var($_GET['quiz_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+        $quizFilter = $positiveInt($_GET['quiz_id'] ?? null);
         $quizResults = reportQuizResults($pdo, $courseId, $quizFilter);
+        if ($quizFilter !== null && !in_array(
+            $quizFilter,
+            array_map(static fn (array $quiz): int => (int) $quiz['id'], $quizResults['summary']),
+            true
+        )) {
+            $quizFilter = null;
+            $quizResults = reportQuizResults($pdo, $courseId);
+        }
     }
 }
 if ($report === 'awaiting') {

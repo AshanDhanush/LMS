@@ -1,0 +1,43 @@
+/* Student dashboard: only what theme.css does not already provide. */
+
+.dash-greeting {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-5);
+}
+.dash-greeting h1 { margin: 0; }
+.dash-greeting p { margin: var(--space-1) 0 0; }
+.dash-greeting__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.dash-section { margin-top: var(--space-6); }
+.dash-section__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-3);
+}
+.dash-section__head h2 { margin: 0; font-size: var(--text-xl); }
+
+.dash-empty {
+  margin: 0; padding: var(--space-4); text-align: center; color: var(--text-muted);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-lg);
+}
+
+/* Continue learning */
+.continue-card__eyebrow { margin: 0 0 var(--space-1); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary-text); }
+.continue-card__progress { max-width: 420px; }
+.continue-card .btn { flex: none; }
+
+/* Stat cards */
+.stat-card__value small { font-size: var(--text-base); font-weight: 600; color: var(--text-muted); }
+
+/* Course cards */
+.course-card .progress { margin-top: var(--space-1); }
+.course-card__meta + .progress-label { margin-top: auto; }
+
+/* Lists */
+.dash-list .list__item { align-items: flex-start; }
+.dash-list .chip { flex: none; }
+.dash-list .deadline { flex: none; text-align: right; }
+.dash-list .list__title { white-space: normal; overflow-wrap: anywhere; }
+a.list__item { color: inherit; text-decoration: none; }
+a.list__item:hover { background: var(--surface-2); }
+
+.dash-retry { margin-left: var(--space-2); }

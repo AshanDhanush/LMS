@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../api/api_assignment_service.php';   // assessmentDeleteStoredFile()
+require_once __DIR__ . '/../api/data_cleanup.php';
 
 $user = currentUser();
 if ($user === null) {
@@ -357,8 +359,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
             if ($findUser->fetchColumn() === false) {
                 $statusError = 'The selected user could not be found.';
             } else {
-                $deleteUser = db()->prepare('DELETE FROM users WHERE id = :id');
-                $deleteUser->execute(['id' => $userId]);
+                // The user's rows, and the courses they teach, go together (no foreign keys do it for us).
+                $cleanupPdo = db();
+                $userFiles = dataCleanupUserFiles($cleanupPdo, (int) $userId);
+                dataCleanupDeleteUser($cleanupPdo, (int) $userId);
+                foreach ($userFiles as $userFile) {
+                    assessmentDeleteStoredFile($userFile);
+                }
                 redirect('admin/users?deleted=1');
             }
         } catch (Throwable $error) {

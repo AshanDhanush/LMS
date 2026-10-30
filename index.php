@@ -74,7 +74,12 @@ if ($user !== null) {
 
                         <div class="form-group">
                             <label class="form-label" for="password">Password</label>
-                            <input class="form-control" id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+                            <div class="account-auth__password-field">
+                                <input class="form-control" id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+                                <button class="account-auth__password-toggle" type="button" data-password-toggle aria-label="Show password" aria-controls="password" aria-pressed="false" title="Show password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /><path class="account-auth__password-toggle-slash" d="m4 4 16 16" /></svg>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="account-auth__options">
@@ -128,11 +133,21 @@ if ($user !== null) {
                     <form class="account-auth__form account-auth__reset-step" id="reset-password-form" hidden>
                         <div class="form-group">
                             <label class="form-label" for="new-password">New password</label>
-                            <input class="form-control" id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+                            <div class="account-auth__password-field">
+                                <input class="form-control" id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+                                <button class="account-auth__password-toggle" type="button" data-password-toggle aria-label="Show password" aria-controls="new-password" aria-pressed="false" title="Show password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /><path class="account-auth__password-toggle-slash" d="m4 4 16 16" /></svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="confirm-new-password">Confirm new password</label>
-                            <input class="form-control" id="confirm-new-password" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+                            <div class="account-auth__password-field">
+                                <input class="form-control" id="confirm-new-password" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+                                <button class="account-auth__password-toggle" type="button" data-password-toggle aria-label="Show password" aria-controls="confirm-new-password" aria-pressed="false" title="Show password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /><path class="account-auth__password-toggle-slash" d="m4 4 16 16" /></svg>
+                                </button>
+                            </div>
                         </div>
                         <button class="btn btn-primary btn-block" type="submit">Update password</button>
                     </form>

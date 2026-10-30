@@ -1,5 +1,18 @@
 const authForm = document.querySelector('[data-auth-action]');
 
+document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const input = document.getElementById(button.getAttribute('aria-controls'));
+    if (!(input instanceof HTMLInputElement)) return;
+
+    const isVisible = input.type === 'text';
+    input.type = isVisible ? 'password' : 'text';
+    button.setAttribute('aria-pressed', String(!isVisible));
+    button.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+    button.title = isVisible ? 'Show password' : 'Hide password';
+  });
+});
+
 if (authForm) {
   const action = authForm.dataset.authAction;
   const isRegistration = action === 'register' || action === 'admin_create_user';

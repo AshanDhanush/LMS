@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/assessment_common.php';
 require_once __DIR__ . '/../../api/api_report_service.php';
 require_once __DIR__ . '/../../api/api_cohort_service.php';
+require_once __DIR__ . '/../../api/data_cleanup.php';
 
 $user = assessmentRequireInstructor();
 $pdo  = db();
@@ -68,7 +69,7 @@ if ($course && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $owned = $cohortId ? cohortOwned($pdo, (int) $cohortId, $instructorId) : null;
 
             if ($owned && (int) $owned['course_id'] === $courseId) {
-                $pdo->prepare('DELETE FROM cohorts WHERE id = :id')->execute(['id' => (int) $cohortId]);
+                dataCleanupDeleteCohort($pdo, (int) $cohortId);   // members and announcements go too
                 assessmentCsrfRotate();
                 cohortFlash('success', 'Cohort deleted. The students stay enrolled in the course.');
             } else {

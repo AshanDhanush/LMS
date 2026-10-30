@@ -3,6 +3,7 @@
 
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/data_cleanup.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -153,19 +154,11 @@ if ($action === 'delete') {
             ? $course['thumbnail']
             : null;
 
-        // Delete only the instructor's own course.
-        $deleteCourse = $pdo->prepare(
-            'DELETE FROM courses
-             WHERE id = :course_id
-               AND instructor_id = :instructor_id'
-        );
+        // Delete only the instructor's own course (ownership was checked above),
+        // together with everything inside it: lessons, enrolments, assignments, quizzes...
+        $deleted = dataCleanupDeleteCourse($pdo, (int) $courseIdToDelete);
 
-        $deleteCourse->execute([
-            'course_id' => $courseIdToDelete,
-            'instructor_id' => (int) $user['id'],
-        ]);
-
-        if ($deleteCourse->rowCount() !== 1) {
+        if (!$deleted) {
             courseApiResponse(404, [
                 'status' => 'error',
                 'message' => 'The course was not found or has already been deleted.'

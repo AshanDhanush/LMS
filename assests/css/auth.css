@@ -133,6 +133,32 @@
 .account-auth__form .form-group { margin-bottom: var(--space-4); }
 .account-auth__form .form-label { margin-bottom: var(--space-2); }
 .account-auth__form .form-control { min-height: 50px; }
+.account-auth__password-field { position: relative; }
+.account-auth__password-field .form-control { padding-right: 3rem; }
+.account-auth__password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.account-auth__password-toggle:hover { color: var(--text); }
+.account-auth__password-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.account-auth__password-toggle svg { width: 18px; height: 18px; }
+.account-auth__password-toggle-slash { display: none; }
+.account-auth__password-toggle[aria-pressed="true"] .account-auth__password-toggle-slash { display: block; }
 .account-auth__options {
   display: flex;
   flex-wrap: wrap;
