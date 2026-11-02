@@ -6,6 +6,31 @@ const instructorSidebarToggle = document.querySelector('[data-instructor-sidebar
 const instructorLayout = document.querySelector('.ins-layout');
 const instructorSidebar = document.getElementById('instructor-sidebar');
 
+document.querySelectorAll('[data-student-course-picker]').forEach((form) => {
+  form.addEventListener('submit', (event) => {
+    const course = form.querySelector('select[name="course_id"]');
+    if (!(course instanceof HTMLSelectElement) || !course.value) return;
+    event.preventDefault();
+    window.location.assign(`${form.dataset.studentCoursePicker}/${encodeURIComponent(course.value)}`);
+  });
+});
+
+document.querySelectorAll('[data-student-filter-base]').forEach((form) => {
+  form.addEventListener('submit', (event) => {
+    const cohort = form.querySelector('select[name="cohort_id"]');
+    const search = form.querySelector('input[name="q"]');
+    if (!(cohort instanceof HTMLSelectElement)) return;
+    event.preventDefault();
+
+    const route = `${form.dataset.studentFilterBase}${cohort.value ? `/cohort/${encodeURIComponent(cohort.value)}` : ''}`;
+    const destination = new URL(route, window.location.origin);
+    if (search instanceof HTMLInputElement && search.value) {
+      destination.searchParams.set('q', search.value);
+    }
+    window.location.assign(destination.href);
+  });
+});
+
 if (
   instructorSidebarToggle instanceof HTMLButtonElement &&
   instructorLayout &&

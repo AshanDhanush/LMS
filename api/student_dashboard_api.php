@@ -262,7 +262,7 @@ function student_dashboard_api_load(PDO $pdo, int $userId): array
 /** Shape the loaded data into the JSON the page expects (with links and clean types). */
 function student_dashboard_api_payload(array $data): array
 {
-    $lessonUrl = static fn (?int $id): ?string => $id ? url('lesson.php?id=' . $id) : null;
+    $lessonUrl = static fn (?int $id): ?string => $id ? url('lesson/' . $id) : null;
 
     $courses = [];
     foreach ($data['progress']['courses'] as $course) {
@@ -302,7 +302,7 @@ function student_dashboard_api_payload(array $data): array
             'course'       => (string) $row['course'],
             'due_at'       => (new DateTimeImmutable((string) $row['due_date']))->format('c'),
             'seconds_left' => (int) $row['seconds_left'],
-            'url'          => url('assignment.php?id=' . (int) $row['id']),
+            'url'          => url('assignment/' . (int) $row['id']),
         ];
     }
 

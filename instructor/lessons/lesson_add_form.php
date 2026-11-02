@@ -128,9 +128,7 @@ function addLessonEscape(mixed $value): string
     );
 }
 
-$backUrl = url(
-    'instructor/course_modules.php?course_id=' . (int) $courseId
-);
+$backUrl = url('instructor/courses/course_lesson/' . (int) $courseId);
 
 $apiUrl = url('api/api_lesson.php');
 

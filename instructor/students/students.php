@@ -25,7 +25,7 @@ if ($course === null && $courses) {
 }
 $courseId = $course ? (int) $course['id'] : 0;
 
-$selfUrl = 'instructor/students/students.php?course_id=' . $courseId;
+$selfUrl = 'instructor/students/students/' . $courseId;
 $errors = [];
 
 /* ---------- Actions (POST) ---------- */
@@ -109,7 +109,7 @@ require __DIR__ . '/_chrome_top.php';
         </div>
     <?php else: ?>
 
-        <form method="get" class="ins-report-picker">
+        <form method="get" class="ins-report-picker" data-student-course-picker="<?= $e(url('instructor/students/students')) ?>">
             <label for="studentCourse">Course</label>
             <select id="studentCourse" name="course_id">
                 <?php foreach ($courses as $c): ?>
@@ -141,7 +141,7 @@ require __DIR__ . '/_chrome_top.php';
                 </form>
             </details>
 
-            <form method="get" class="ins-report-picker">
+            <form method="get" class="ins-report-picker" data-student-filter-base="<?= $e(url('instructor/students/students/' . $courseId)) ?>">
                 <input type="hidden" name="course_id" value="<?= $courseId ?>">
                 <label for="studentSearch">Search</label>
                 <input type="search" id="studentSearch" name="q" value="<?= $e($search) ?>" placeholder="Name or email">
@@ -179,7 +179,7 @@ require __DIR__ . '/_chrome_top.php';
                                 <td><strong><?= $e($s['name']) ?></strong><br><small><?= $e($s['email']) ?></small></td>
                                 <td>
                                     <?php foreach (($cohortNames[(int) $s['id']] ?? []) as $cid => $cname): ?>
-                                        <a class="ins-chip ins-chip--primary" href="<?= $e(url('instructor/students/cohort_view.php?id=' . (int) $cid)) ?>"><?= $e($cname) ?></a>
+                                        <a class="ins-chip ins-chip--primary" href="<?= $e(url('instructor/students/cohort/' . (int) $cid)) ?>"><?= $e($cname) ?></a>
                                     <?php endforeach; ?>
                                     <?php if (empty($cohortNames[(int) $s['id']])): ?><small>None</small><?php endif; ?>
                                 </td>
@@ -192,7 +192,7 @@ require __DIR__ . '/_chrome_top.php';
                                 <td><?= $e(assessmentFormatDate($s['last_activity']) ?: 'No activity yet') ?></td>
                                 <td><?= $e(cohortFormatDate($s['enrolled_at'])) ?></td>
                                 <td class="ins-table__actions">
-                                    <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/students/student_view.php?course_id=' . $courseId . '&id=' . (int) $s['id'])) ?>">View</a>
+                                    <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/students/course/' . $courseId . '/student/' . (int) $s['id'])) ?>">View</a>
                                     <form method="post" class="ins-inline-form"
                                           data-confirm="Remove <?= $e($s['name']) ?> from this course? They will also leave its cohorts. Their lesson progress, submissions and quiz attempts are kept.">
                                         <input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>">

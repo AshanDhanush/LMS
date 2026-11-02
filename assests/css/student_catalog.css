@@ -1,0 +1,66 @@
+/* Student course catalog: only what theme.css does not already provide.
+   Mobile first; matches the mobile, tablet and desktop frames of the design. */
+
+.catalog-head { margin: var(--space-3) 0 var(--space-4); }
+.catalog-head h1 { margin: 0; }
+.catalog-head p { margin: var(--space-1) 0 0; }
+
+.catalog-toolbar { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
+.catalog-toolbar .form-group { margin: 0; }
+
+.catalog-categories { margin: var(--space-4) 0 var(--space-3); }
+.catalog-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+.catalog-chip {
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+  border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
+  font: inherit; font-size: var(--text-sm); cursor: pointer;
+}
+.catalog-chip:hover { background: var(--surface-2); }
+.catalog-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+
+.catalog-filters-toggle { margin-bottom: var(--space-3); }
+
+.catalog-layout { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+
+/* Filters: collapsed on small screens, a side column on desktop */
+.catalog-filters { display: none; align-self: start; }
+.catalog-filters.is-open { display: block; }
+.catalog-filter { border: 0; margin: var(--space-3) 0; padding: 0; }
+.catalog-filter legend { font-size: var(--text-sm); font-weight: 600; padding: 0; margin-bottom: var(--space-1); }
+.catalog-filter label { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; font-size: var(--text-sm); cursor: pointer; }
+
+.catalog-count { margin: 0 0 var(--space-3); font-size: var(--text-sm); }
+
+.catalog-grid { display: grid; gap: var(--space-4); grid-template-columns: 1fr; }
+.catalog-grid > .dash-empty { grid-column: 1 / -1; }
+
+.catalog-card__facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+.catalog-rating { display: inline-flex; align-items: center; gap: var(--space-1); }
+.catalog-rating__star { color: var(--star, #e8a317); }
+.catalog-card__footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.catalog-card__footer .btn-primary { margin-left: auto; }
+
+/* Tablet: two columns of cards */
+@media (min-width: 640px) {
+  .catalog-toolbar { grid-template-columns: 1fr 220px; align-items: end; }
+  .catalog-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Desktop: filters beside a three-column grid */
+@media (min-width: 1024px) {
+  .catalog-filters-toggle { display: none; }
+  .catalog-layout { grid-template-columns: 200px 1fr; gap: var(--space-5); }
+  .catalog-filters { display: block; position: sticky; top: calc(var(--topbar-h) + var(--space-3)); }
+  .catalog-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .catalog-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* My courses page */
+.catalog-head--row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.my-tabs { margin: var(--space-4) 0 var(--space-3); }
+.my-card .progress { margin-top: var(--space-1); }
+.my-card__progress { margin-top: auto; }
+.my-card__footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-2); }
+@media (min-width: 1024px) { .my-grid { grid-template-columns: repeat(3, 1fr); } }

@@ -23,9 +23,9 @@ $type = ($_GET['type'] ?? 'assignment') === 'quiz' ? 'quiz' : 'assignment';
 
 $assessmentsPageUrl = url('instructor/assignment and grading/assignments_and_grading.php');
 $pageUrl   = static fn (string $t): string => url(
-    'instructor/assignment and grading/assessment_list.php?course_id=' . (int) $courseId . '&type=' . $t
+    'instructor/assignment-grading/list/' . (int) $courseId . '?type=' . $t
 );
-$addUrl    = url('instructor/assignment and grading/assessment_add_form?course_id=' . (int) $courseId);
+$addUrl    = url('instructor/assignment-grading/add/' . (int) $courseId);
 
 /* ---- Load both lists (the tabs show both counts) ---- */
 
@@ -165,7 +165,7 @@ $pageTitle = 'Assignments and Quizzes';
 
                     <footer class="ins-assess-item__actions">
                         <a class="ins-btn ins-btn--small"
-                           href="<?= assessmentFormEscape(url('instructor/assignment and grading/assignment_edit_form.php?id=' . (int) $item['id'])) ?>">Edit</a>
+                           href="<?= assessmentFormEscape(url('instructor/assignment-grading/edit-assignment/' . (int) $item['id'])) ?>">Edit</a>
 
                         <form method="post" action="<?= assessmentFormEscape(url('instructor/assignment and grading/assessment_delete.php')) ?>"
                               data-confirm="Delete the assignment &quot;<?= assessmentFormEscape($item['title']) ?>&quot;?<?= (int) $item['submission_count'] > 0
@@ -254,7 +254,7 @@ $pageTitle = 'Assignments and Quizzes';
 
                     <footer class="ins-assess-item__actions">
                         <a class="ins-btn ins-btn--small"
-                           href="<?= assessmentFormEscape(url('instructor/assignment and grading/quiz_edit_form.php?id=' . (int) $item['id'])) ?>">Edit</a>
+                           href="<?= assessmentFormEscape(url('instructor/assignment-grading/edit-quiz/' . (int) $item['id'])) ?>">Edit</a>
 
                         <form method="post" action="<?= assessmentFormEscape(url('instructor/assignment and grading/assessment_delete.php')) ?>"
                               data-confirm="Delete the quiz &quot;<?= assessmentFormEscape($item['title']) ?>&quot;?<?= (int) $item['attempt_count'] > 0

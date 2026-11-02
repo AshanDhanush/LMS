@@ -85,7 +85,7 @@ function addModuleEscape(string $value): string
     <main class="ins-main ins-lesson-main">
         <header class="ins-lesson-hero">
         <a class="ins-lesson-back"
-               href="<?= addModuleEscape(url('instructor/courses/course_lesson.php?course_id=' . $courseId)) ?>">
+               href="<?= addModuleEscape(url('instructor/courses/course_lesson/' . $courseId)) ?>">
                 &larr; Back to curriculum
             </a>
 
@@ -173,7 +173,7 @@ function addModuleEscape(string $value): string
 
                 <div class="form-actions">
                     <a class="ins-btn"
-                       href="<?= addModuleEscape(url('instructor/courses/course_lesson.php?course_id=' . $courseId)) ?>">
+                       href="<?= addModuleEscape(url('instructor/courses/course_lesson/' . $courseId)) ?>">
                         Cancel
                     </a>
                     <button class="ins-btn ins-btn--primary" id="submitButton" type="submit">

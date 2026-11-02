@@ -10,6 +10,13 @@ RewriteRule ^(.+)\.php$ %{REQUEST_SCHEME}://%{HTTP_HOST}%1 [R=301,L,NE]
 
 # Keep the admin user profile on its clean URL.
 RewriteRule ^admin/user-profile/?$ admin/user-profile.php [L]
+RewriteRule ^admin/user-profile/([0-9]+)/?$ admin/user-profile.php?id=$1 [L,QSA]
+RewriteRule ^admin/courses/edit/([0-9]+)/?$ admin/courses.php?edit=$1 [L,QSA]
+
+# Clean student detail URLs.
+RewriteRule ^course/([0-9]+)/?$ course.php?id=$1 [L,QSA]
+RewriteRule ^lesson/([0-9]+)/?$ lesson.php?id=$1 [L,QSA]
+RewriteRule ^assignment/([0-9]+)/?$ assignment.php?id=$1 [L,QSA]
 
 # Clean instructor report URLs, including a selected quiz's attempt history.
 RewriteRule ^instructor/reports/quizzes/([0-9]+)/([0-9]+)/?$ instructor/reports.php?report=quizzes&course_id=$1&quiz_id=$2 [L,QSA]
@@ -22,6 +29,21 @@ RewriteRule ^instructor/export-csv/(gradebook|students|progress|quiz_attempts|re
 # Clean instructor module URLs: /add_module/{course_id} and /edit_module/{course_id}/{module_id}.
 RewriteRule ^instructor/modules/add_module/([0-9]+)/?$ instructor/modules/add_module.php?id=$1 [L,QSA]
 RewriteRule ^instructor/modules/edit_module/([0-9]+)/([0-9]+)/?$ instructor/modules/edit_module.php?course_id=$1&id=$2 [L,QSA]
+
+# Clean instructor course, lesson, assessment, and student URLs.
+RewriteRule ^instructor/courses/course_lesson/([0-9]+)/?$ instructor/courses/course_lesson.php?course_id=$1 [L,QSA]
+RewriteRule ^instructor/courses/courses_edit_form/([0-9]+)/?$ instructor/courses/courses_edit_form.php?id=$1 [L,QSA]
+RewriteRule ^instructor/lessons/add/([0-9]+)/([0-9]+)/?$ instructor/lessons/lesson_add_form.php?course_id=$1&module_id=$2 [L,QSA]
+RewriteRule ^instructor/lessons/add/([0-9]+)/?$ instructor/lessons/lesson_add_form.php?course_id=$1 [L,QSA]
+RewriteRule ^instructor/assignment-grading/list/([0-9]+)/?$ "instructor/assignment and grading/assessment_list.php?course_id=$1" [L,QSA]
+RewriteRule ^instructor/assignment-grading/add/([0-9]+)/?$ "instructor/assignment and grading/assessment_add_form.php?course_id=$1" [L,QSA]
+RewriteRule ^instructor/assignment-grading/edit-assignment/([0-9]+)/?$ "instructor/assignment and grading/assignment_edit_form.php?id=$1" [L,QSA]
+RewriteRule ^instructor/assignment-grading/edit-quiz/([0-9]+)/?$ "instructor/assignment and grading/quiz_edit_form.php?id=$1" [L,QSA]
+RewriteRule ^instructor/students/cohorts/([0-9]+)/?$ instructor/students/cohorts.php?course_id=$1 [L,QSA]
+RewriteRule ^instructor/students/cohort/([0-9]+)/?$ instructor/students/cohort_view.php?id=$1 [L,QSA]
+RewriteRule ^instructor/students/students/([0-9]+)/cohort/([0-9]+)/?$ instructor/students/students.php?course_id=$1&cohort_id=$2 [L,QSA]
+RewriteRule ^instructor/students/students/([0-9]+)/?$ instructor/students/students.php?course_id=$1 [L,QSA]
+RewriteRule ^instructor/students/course/([0-9]+)/student/([0-9]+)/?$ instructor/students/student_view.php?course_id=$1&id=$2 [L,QSA]
 
 # Resolve extensionless requests to their PHP page when no file or directory exists.
 RewriteCond %{REQUEST_FILENAME} !-f

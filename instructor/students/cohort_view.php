@@ -19,7 +19,7 @@ if (!$cohort) {
 }
 
 $courseId = (int) $cohort['course_id'];
-$selfUrl  = 'instructor/students/cohort_view.php?id=' . (int) $cohortId;
+$selfUrl  = 'instructor/students/cohort/' . (int) $cohortId;
 $errors   = [];
 $form     = [
     'name'        => (string) $cohort['name'],
@@ -144,7 +144,7 @@ $announcements = cohortAnnouncements($pdo, (int) $cohortId);
 
 $csrfToken = assessmentCsrfToken();
 $pct = static fn ($v): string => $v === null ? '–' : number_format((float) $v, 1) . '%';
-$cohortsUrl = url('instructor/students/cohorts.php?course_id=' . $courseId);
+$cohortsUrl = url('instructor/students/cohorts/' . $courseId);
 $pageTitleTag = $cohort['name'] . ' (cohort)';
 $pageHeading = 'Students & cohorts';
 
@@ -198,7 +198,7 @@ require __DIR__ . '/_chrome_top.php';
                             </td>
                             <td><?= $e(assessmentFormatDate($m['last_activity']) ?: 'No activity yet') ?></td>
                             <td class="ins-table__actions">
-                                <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/students/student_view.php?course_id=' . $courseId . '&id=' . (int) $m['id'])) ?>">View</a>
+                                <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/students/course/' . $courseId . '/student/' . (int) $m['id'])) ?>">View</a>
                                 <form method="post" class="ins-inline-form"
                                       data-confirm="Remove <?= $e($m['name']) ?> from this cohort? They stay enrolled in the course.">
                                     <input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>">

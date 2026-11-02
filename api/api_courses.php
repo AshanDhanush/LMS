@@ -464,7 +464,7 @@ try {
             'message' => 'Your course was updated successfully.',
             'course_id' => $courseId,
             'redirect' => url(
-                'instructor/courses/courses_edit_form?id=' . $courseId . '&updated=1'
+                'instructor/courses/courses_edit_form/' . $courseId . '?updated=1'
             )
         ]);
     }

@@ -35,7 +35,7 @@ if (!$assignment) {
 }
 
 $courseId = (int) $assignment['course_id'];
-$listUrl  = url('instructor/assignment and grading/assessment_list.php?course_id=' . $courseId . '&type=assignment');
+$listUrl  = url('instructor/assignment-grading/list/' . $courseId . '?type=assignment');
 $errors   = [];
 
 $values = [
@@ -104,8 +104,8 @@ if ($isPost) {
                 }
 
                 assessmentCsrfRotate();
-                redirect('instructor/assignment and grading/assessment_list.php?course_id='
-                    . $courseId . '&type=assignment&updated=assignment');
+                redirect('instructor/assignment-grading/list/'
+                    . $courseId . '?type=assignment&updated=assignment');
                 exit;
             } catch (PDOException $exception) {
                 if ($stored) {

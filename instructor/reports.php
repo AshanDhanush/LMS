@@ -438,7 +438,7 @@ $pageTitle = 'Analytics & reports';
                                         ? '<span class="ins-chip ins-chip--danger">' . intdiv($hours, 24) . ' days</span>'
                                         : $e($hours < 1 ? 'Under 1 hour' : $hours . ' hours') ?></td>
                                     <td class="ins-table__actions">
-                                        <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/assignment and grading/assessment_list.php?course_id=' . (int) $r['course_id'] . '&type=assignment')) ?>">Open</a>
+                                        <a class="ins-btn ins-btn--small" href="<?= $e(url('instructor/assignment-grading/list/' . (int) $r['course_id'] . '?type=assignment')) ?>">Open</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -129,8 +129,8 @@ if ($isPost) {
 
                 $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
 
-                redirect('instructor/assignment and grading/assessment_list.php?course_id='
-                    . $courseId . '&type=quiz&added=quiz');
+                redirect('instructor/assignment-grading/list/'
+                    . $courseId . '?type=quiz&added=quiz');
                 exit;
             } catch (PDOException | JsonException $exception) {
                 error_log('Quiz insert failed: ' . $exception->getMessage());
@@ -171,8 +171,8 @@ if ($isPost) {
 
                     $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
 
-                    redirect('instructor/assignment and grading/assessment_list.php?course_id='
-                        . $courseId . '&type=assignment&added=assignment');
+                    redirect('instructor/assignment-grading/list/'
+                        . $courseId . '?type=assignment&added=assignment');
                     exit;
                 } catch (PDOException $exception) {
              

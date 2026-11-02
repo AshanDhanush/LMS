@@ -197,9 +197,9 @@ if ($action === 'delete') {
         }
     }
 
-    $deleteRedirect = url('instructor/courses/course_lesson.php?course_id=' . $courseId);
+    $deleteRedirect = url('instructor/courses/course_lesson/' . $courseId);
     if (!$wantsJson) {
-        redirect('instructor/courses/course_lesson.php?course_id=' . $courseId);
+        redirect('instructor/courses/course_lesson/' . $courseId);
     }
 
     moduleApiResponse(200, [
@@ -277,7 +277,7 @@ if ($action === 'create') {
     }
 }
 
-$redirect = url('instructor/courses/course_lesson.php?course_id=' . $courseId);
+$redirect = url('instructor/courses/course_lesson/' . $courseId);
 if ($wantsJson) {
     moduleApiResponse(200, [
         'status' => 'success',
@@ -288,4 +288,4 @@ if ($wantsJson) {
     ]);
 }
 
-redirect('instructor/courses/course_lesson.php?course_id=' . $courseId);
+redirect('instructor/courses/course_lesson/' . $courseId);

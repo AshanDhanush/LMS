@@ -86,7 +86,7 @@ function editLessonEscape(mixed $value): string
     <header class="ins-lesson-hero ins-lesson-hero--form">
         <div class="ins-lesson-hero__copy">
             <a class="ins-lesson-back" href="<?= editLessonEscape(
-                url('instructor/courses/course_lesson.php?' . (int) $lesson['course_id'])
+                url('instructor/courses/course_lesson/' . (int) $lesson['course_id'])
             ) ?>">&larr; Back to lessons</a>
             <h1>Edit lesson</h1>
             <p>Course: <strong><?= editLessonEscape($lesson['course_title']) ?></strong></p>
@@ -199,7 +199,7 @@ function editLessonEscape(mixed $value): string
 
             <div class="ins-lesson-form__actions">
                 <a class="ins-btn" href="<?= editLessonEscape(
-                    url('instructor/courses/course_lesson.php?' . (int) $lesson['course_id'])
+                    url('instructor/courses/course_lesson/' . (int) $lesson['course_id'])
                 ) ?>">Cancel</a>
                 <button class="ins-btn ins-btn--primary" id="lessonSubmitButton" type="submit">Save changes</button>
             </div>

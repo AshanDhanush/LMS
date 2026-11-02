@@ -30,6 +30,7 @@ $navIcon = static function (string $name): string {
         'book' => '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
         'clipboard' => '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/>',
         'chart' => '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M13 16V8M18 16v-7"/>',
+        'compass' => '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
         'users' => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c2.2.6 3.5 2.2 3.5 5.3"/>',
     ];
 
@@ -64,8 +65,10 @@ $navIcon = static function (string $name): string {
                 <ul class="nav">
                     <li><a class="nav-item active" href="<?= $e(url('dashboard.php')) ?>" aria-current="page">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('home') ?></span><span class="nav-label">Dashboard</span></a></li>
-                    <li><a class="nav-item" href="#my-courses">
+                    <li><a class="nav-item" href="<?= $e(url('my_courses.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('book') ?></span><span class="nav-label">My courses</span></a></li>
+                    <li><a class="nav-item" href="<?= $e(url('courses.php')) ?>">
+                        <span class="nav-icon" aria-hidden="true"><?= $navIcon('compass') ?></span><span class="nav-label">Explore courses</span></a></li>
                     <li><a class="nav-item" href="#deadlines">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('clipboard') ?></span><span class="nav-label">Deadlines</span></a></li>
                     <li><a class="nav-item" href="<?= $e(url('grades.php')) ?>">
@@ -132,7 +135,7 @@ $navIcon = static function (string $name): string {
 
                     <!-- My courses -->
                     <section class="dash-section" id="my-courses" aria-labelledby="courses-title">
-                        <div class="dash-section__head"><h2 id="courses-title">My courses</h2></div>
+                        <div class="dash-section__head"><h2 id="courses-title">My courses</h2><a class="btn btn-ghost btn-sm" href="<?= $e(url('my_courses.php')) ?>">View all</a></div>
                         <div class="grid grid--auto" data-courses></div>
                     </section>
 

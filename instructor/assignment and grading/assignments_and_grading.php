@@ -192,8 +192,8 @@ $pageTitle = 'Assignments and Quizzes';
                     <div class="ins-assess-card__stats">
 
                         <a class="ins-assess-tile ins-assess-tile--assignment" href="<?= assessmentsPageEscape(url(
-                            'instructor/assignment and grading/assessment_list.php?course_id='
-                            . (int) $course['id'] . '&type=assignment'
+                            'instructor/assignment-grading/list/'
+                            . (int) $course['id'] . '?type=assignment'
                         )) ?>">
                             <span class="ins-assess-tile__value">
                                 <?= (int) $course['assignment_count'] ?>
@@ -204,8 +204,8 @@ $pageTitle = 'Assignments and Quizzes';
                         </a>
 
                         <a class="ins-assess-tile ins-assess-tile--quiz" href="<?= assessmentsPageEscape(url(
-                            'instructor/assignment and grading/assessment_list.php?course_id='
-                            . (int) $course['id'] . '&type=quiz'
+                            'instructor/assignment-grading/list/'
+                            . (int) $course['id'] . '?type=quiz'
                         )) ?>">
                             <span class="ins-assess-tile__value">
                                 <?= (int) $course['quiz_count'] ?>
@@ -221,7 +221,7 @@ $pageTitle = 'Assignments and Quizzes';
                         <a
                             class="ins-btn ins-btn--small"
                             href="<?= assessmentsPageEscape(url(
-                                'instructor/assignment and grading/assessment_list.php?course_id='
+                                'instructor/assignment-grading/list/'
                                 . (int) $course['id']
                             )) ?>"
                         >
@@ -230,7 +230,7 @@ $pageTitle = 'Assignments and Quizzes';
                         <a
                             class="ins-btn ins-btn--primary ins-btn--small"
                             href="<?= assessmentsPageEscape(url(
-                                'instructor/assignment and grading/assessment_add_form?course_id='
+                                'instructor/assignment-grading/add/'
                                 . (int) $course['id']
                             )) ?>"
                         >

@@ -245,7 +245,7 @@ try {
         lessonApiResponse(200, [
             'status' => 'success',
             'message' => 'Lesson deleted successfully.',
-            'redirect' => url('instructor/courses/course_lesson.php?' . $courseId),
+            'redirect' => url('instructor/courses/course_lesson/' . $courseId),
         ]);
     }
 
@@ -463,7 +463,7 @@ try {
         'message' => $action === 'create'
             ? 'Lesson created successfully.'
             : 'Lesson updated successfully.',
-        'redirect' => url('instructor/courses/course_lesson.php?' . $courseId),
+        'redirect' => url('instructor/courses/course_lesson/' . $courseId),
     ]);
 } catch (Throwable $e) {
     foreach ($newUploadPaths ?? [] as $newUploadPath) {

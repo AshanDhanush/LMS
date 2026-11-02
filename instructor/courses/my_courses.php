@@ -220,7 +220,7 @@ $stmt = $pdo->prepare(
                         ?>
                         <div class="ins-grid-card" data-title="<?= h(mb_strtolower($course['title'])) ?>" data-status="<?= h($course['status']) ?>">
                             <a class="ins-grid-card__content"
-                               href="<?= h(url('instructor/courses/course_lesson.php?' . (int) $course['id'])) ?>">
+                               href="<?= h(url('instructor/courses/course_lesson/' . (int) $course['id'])) ?>">
 
                             <div class="ins-grid-card__header <?= h(tagClass((int) $course['id'])) ?>">
                                 <?php if ($thumb !== null): ?>
@@ -256,7 +256,7 @@ $stmt = $pdo->prepare(
                             </a>
 
                             <div class="ins-grid-card__footer">
-                                <a class="ins-btn" href="<?= h(url($editCourseHref . '?' . (int) $course['id'])) ?>">
+                                <a class="ins-btn" href="<?= h(url($editCourseHref . '/' . (int) $course['id'])) ?>">
                                     Edit
                                 </a>
                                 <button class="ins-btn ins-btn--danger" type="button"

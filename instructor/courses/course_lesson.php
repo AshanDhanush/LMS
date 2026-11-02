@@ -390,9 +390,9 @@ $pageTitle = 'Manage Course Curriculum';
                         <a
                             class="ins-btn ins-btn--primary ins-btn--small"
                             href="<?= courseModulesPageEscape(url(
-                                'instructor/lessons/lesson_add_form.php?course_id='
+                                'instructor/lessons/add/'
                                 . (int) $courseId
-                                . ($group['id'] !== null ? '&module_id=' . (int) $group['id'] : '')
+                                . ($group['id'] !== null ? '/' . (int) $group['id'] : '')
                             )) ?>"
                         >
                             + Add Lesson

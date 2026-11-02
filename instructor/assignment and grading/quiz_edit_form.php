@@ -37,7 +37,7 @@ if (!$quiz) {
 }
 
 $courseId = (int) $quiz['course_id'];
-$listUrl  = url('instructor/assignment and grading/assessment_list.php?course_id=' . $courseId . '&type=quiz');
+$listUrl  = url('instructor/assignment-grading/list/' . $courseId . '?type=quiz');
 $errors   = [];
 
 // What the form shows first: the saved quiz.
@@ -81,8 +81,8 @@ if ($isPost) {
             $update->execute($result['clean'] + ['id' => $quizId, 'course_id' => $courseId]);
 
             assessmentCsrfRotate();
-            redirect('instructor/assignment and grading/assessment_list.php?course_id='
-                . $courseId . '&type=quiz&updated=quiz');
+            redirect('instructor/assignment-grading/list/'
+                . $courseId . '?type=quiz&updated=quiz');
             exit;
         } catch (PDOException $exception) {
             error_log('Quiz update failed: ' . $exception->getMessage());

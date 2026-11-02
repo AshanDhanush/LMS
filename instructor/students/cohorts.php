@@ -26,7 +26,7 @@ if ($course === null && $courses) {
 }
 $courseId = $course ? (int) $course['id'] : 0;
 
-$selfUrl = 'instructor/students/cohorts.php?course_id=' . $courseId;
+$selfUrl = 'instructor/students/cohorts/' . $courseId;
 $errors = [];
 $form = ['name' => '', 'description' => '', 'start_date' => '', 'end_date' => ''];
 
@@ -60,7 +60,7 @@ if ($course && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                     assessmentCsrfRotate();
                     cohortFlash('success', 'Cohort created. Now add students to it.');
-                    redirect('instructor/students/cohort_view.php?id=' . $newId);
+                    redirect('instructor/students/cohort/' . $newId);
                     exit;
                 }
             }
@@ -109,7 +109,7 @@ require __DIR__ . '/_chrome_top.php';
         </div>
     <?php else: ?>
 
-        <form method="get" class="ins-report-picker">
+        <form method="get" class="ins-report-picker" data-student-course-picker="<?= $e(url('instructor/students/cohorts')) ?>">
             <label for="cohortCourse">Course</label>
             <select id="cohortCourse" name="course_id">
                 <?php foreach ($courses as $c): ?>
@@ -176,7 +176,7 @@ require __DIR__ . '/_chrome_top.php';
                         </dl>
 
                         <footer class="ins-assess-item__actions">
-                            <a class="ins-btn ins-btn--small ins-btn--primary" href="<?= $e(url('instructor/students/cohort_view.php?id=' . (int) $c['id'])) ?>">Open</a>
+                            <a class="ins-btn ins-btn--small ins-btn--primary" href="<?= $e(url('instructor/students/cohort/' . (int) $c['id'])) ?>">Open</a>
                             <form method="post"
                                   data-confirm="Delete the cohort &quot;<?= $e($c['name']) ?>&quot;? Its announcements are deleted too. The students stay enrolled in the course.">
                                 <input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>">

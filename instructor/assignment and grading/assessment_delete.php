@@ -19,8 +19,8 @@ $type     = (string) ($_POST['type'] ?? '');
 $id       = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $courseId = filter_var($_POST['course_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-$back = static fn (string $query): string => 'instructor/assignment and grading/assessment_list.php?course_id='
-    . (int) $courseId . '&type=' . ($type === 'quiz' ? 'quiz' : 'assignment') . '&' . $query;
+$back = static fn (string $query): string => 'instructor/assignment-grading/list/'
+    . (int) $courseId . '?type=' . ($type === 'quiz' ? 'quiz' : 'assignment') . '&' . $query;
 
 if (!$courseId || !$id || !in_array($type, ['assignment', 'quiz'], true)) {
     redirect($assessmentsPage);

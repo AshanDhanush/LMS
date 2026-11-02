@@ -123,7 +123,7 @@ $pageTitle = 'Edit Module: ' . $module['title'];
     <header class="ins-lesson-hero ins-lesson-hero--form">
         <div class="ins-lesson-hero__copy">
             <a class="ins-lesson-back"
-               href="<?= escape(url('instructor/courses/course_lesson.php?course_id=' . (int) $courseId)) ?>">
+               href="<?= escape(url('instructor/courses/course_lesson/' . (int) $courseId)) ?>">
                 &larr; Back to curriculum
             </a>
             <p class="eyebrow">COURSE CURRICULUM</p>
@@ -175,7 +175,7 @@ $pageTitle = 'Edit Module: ' . $module['title'];
 
             <div class="ins-lesson-form__actions">
                 <a class="ins-btn"
-                   href="<?= escape(url('instructor/courses/course_lesson.php?course_id=' . (int) $courseId)) ?>">
+                   href="<?= escape(url('instructor/courses/course_lesson/' . (int) $courseId)) ?>">
                     Cancel
                 </a>
                 <button type="submit" class="ins-btn ins-btn--primary"
@@ -191,7 +191,7 @@ window.moduleApiUrl = <?= json_encode(
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
 ) ?>;
 window.moduleRedirectUrl = <?= json_encode(
-    url('instructor/courses/course_lesson.php?course_id=' . (int) $courseId),
+    url('instructor/courses/course_lesson/' . (int) $courseId),
     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
 ) ?>;
 </script>

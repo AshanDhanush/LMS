@@ -45,7 +45,7 @@ $attempts = array_values(array_filter(
 $cohortNames = cohortNamesByStudent($pdo, (int) $courseId)[(int) $studentId] ?? [];
 
 $pct = static fn ($v): string => $v === null ? '–' : number_format((float) $v, 1) . '%';
-$backUrl = url('instructor/students/students.php?course_id=' . (int) $courseId);
+$backUrl = url('instructor/students/students/' . (int) $courseId);
 $pageTitleTag = $row['name'];
 $pageHeading = 'Students & cohorts';
 
@@ -75,7 +75,7 @@ require __DIR__ . '/_chrome_top.php';
                 <dt>Cohorts</dt>
                 <dd>
                     <?php foreach ($cohortNames as $cid => $cname): ?>
-                        <a class="ins-chip ins-chip--primary" href="<?= $e(url('instructor/students/cohort_view.php?id=' . (int) $cid)) ?>"><?= $e($cname) ?></a>
+                        <a class="ins-chip ins-chip--primary" href="<?= $e(url('instructor/students/cohort/' . (int) $cid)) ?>"><?= $e($cname) ?></a>
                     <?php endforeach; ?>
                     <?= $cohortNames ? '' : 'None' ?>
                 </dd>
