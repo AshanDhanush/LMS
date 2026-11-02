@@ -122,3 +122,5 @@ a.path-row:hover { background: var(--surface-2); }
   .lesson-layout { grid-template-columns: 1fr 320px; }
   .lesson-side { position: sticky; top: calc(var(--topbar-h, 64px) + var(--space-3)); }
 }
+
+.path-quizzes { margin-top: var(--space-5); }

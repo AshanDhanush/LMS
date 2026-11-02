@@ -51,6 +51,8 @@ studentShellOpen($student, 'my-courses', 'Course detail', $attributes, ['assests
                     <div class="course-tabs" role="tablist" aria-label="Course sections">
                         <button class="course-tab" role="tab" id="tab-overview" aria-controls="panel-overview" data-tab="overview" type="button">Overview</button>
                         <button class="course-tab" role="tab" id="tab-lessons" aria-controls="panel-lessons" data-tab="lessons" type="button">Lessons</button>
+                        <button class="course-tab" role="tab" id="tab-quizzes" aria-controls="panel-quizzes" data-tab="quizzes" type="button">Quizzes</button>
+                        <button class="course-tab" role="tab" id="tab-assignments" aria-controls="panel-assignments" data-tab="assignments" type="button">Assignments</button>
                         <button class="course-tab" role="tab" id="tab-reviews" aria-controls="panel-reviews" data-tab="reviews" type="button">Reviews</button>
                     </div>
 
@@ -73,6 +75,18 @@ studentShellOpen($student, 'my-courses', 'Course detail', $attributes, ['assests
                         <div class="path-head"><h2>Your learning path</h2><span class="text-muted" data-path-meta></span></div>
                         <div data-path></div>
                         <p class="alert alert--info" data-path-note hidden></p>
+                    </section>
+
+                    <!-- Quizzes -->
+                    <section id="panel-quizzes" role="tabpanel" aria-labelledby="tab-quizzes" data-panel="quizzes" class="course-panel" hidden>
+                        <div class="path-head"><h2>Quizzes</h2><span class="text-muted" data-quizzes-meta></span></div>
+                        <div class="card path-module"><ul class="path-list" data-quizzes></ul></div>
+                    </section>
+
+                    <!-- Assignments -->
+                    <section id="panel-assignments" role="tabpanel" aria-labelledby="tab-assignments" data-panel="assignments" class="course-panel" hidden>
+                        <div class="path-head"><h2>Assignments</h2><span class="text-muted" data-assignments-meta></span></div>
+                        <div class="card path-module"><ul class="path-list" data-assignments></ul></div>
                     </section>
 
                     <!-- Reviews -->

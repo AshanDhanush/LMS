@@ -12,6 +12,7 @@ declare(strict_types=1);
 */
 
 require_once __DIR__ . '/../includes/student_course_common.php';
+require_once __DIR__ . '/api_quiz_service.php';
 
 const SC_REVIEWS_PER_PAGE = 5;
 const SC_REVIEW_MAX = 500;
@@ -135,6 +136,53 @@ $next = sc_next_lesson($outline['flat']);
 $students = $pdo->prepare('SELECT COUNT(*) FROM enrollments WHERE course_id = :c');
 $students->execute([':c' => $courseId]);
 
+$stmt = $pdo->prepare(
+    "SELECT q.id, q.title, q.questions, q.pass_mark, q.max_attempts, q.start_time, q.end_time,
+            (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.quiz_id = q.id AND qa.user_id = :u1) AS used,
+            (SELECT MAX(qa.score / NULLIF(qa.total_marks, 0)) * 100 FROM quiz_attempts qa WHERE qa.quiz_id = q.id AND qa.user_id = :u2) AS best,
+            (SELECT COALESCE(MAX(qa.passed), 0) FROM quiz_attempts qa WHERE qa.quiz_id = q.id AND qa.user_id = :u3) AS passed
+     FROM quizzes q WHERE q.course_id = :c ORDER BY q.id ASC"
+);
+$stmt->execute([':u1' => $userId, ':u2' => $userId, ':u3' => $userId, ':c' => $courseId]);
+$quizzes = [];
+foreach ($stmt->fetchAll() as $row) {
+    $decoded = json_decode((string) $row['questions'], true);
+    $quizzes[] = [
+        'id'           => (int) $row['id'],
+        'title'        => (string) $row['title'],
+        'questions'    => is_array($decoded) ? count($decoded) : 0,
+        'pass_mark'    => (int) $row['pass_mark'],
+        'max_attempts' => (int) $row['max_attempts'],
+        'used'         => (int) $row['used'],
+        'best'         => $row['best'] !== null ? (int) round((float) $row['best']) : null,
+        'passed'       => (bool) (int) $row['passed'],
+        'availability' => quizAvailability($row['start_time'], $row['end_time']),
+    ];
+}
+
+$stmt = $pdo->prepare(
+    'SELECT a.id, a.title, a.due_date, a.max_mark, s.submitted_at, s.mark, s.graded_at
+     FROM assignments a
+     LEFT JOIN submissions s ON s.assignment_id = a.id AND s.student_id = :u
+     WHERE a.course_id = :c ORDER BY a.due_date ASC, a.id ASC'
+);
+$stmt->execute([':u' => $userId, ':c' => $courseId]);
+$assignments = [];
+$nowTime = new DateTimeImmutable();
+foreach ($stmt->fetchAll() as $row) {
+    $due = new DateTimeImmutable((string) $row['due_date']);
+    $state = $row['mark'] !== null ? 'graded' : ($row['submitted_at'] !== null ? 'submitted' : ($due < $nowTime ? 'overdue' : 'open'));
+    $assignments[] = [
+        'id'        => (int) $row['id'],
+        'title'     => (string) $row['title'],
+        'due'       => sc_iso((string) $row['due_date']),
+        'max_mark'  => (int) $row['max_mark'],
+        'mark'      => $row['mark'] !== null ? (int) $row['mark'] : null,
+        'submitted' => sc_iso($row['submitted_at']),
+        'state'     => $state,
+    ];
+}
+
 $reviews = sc_reviews($pdo, $courseId, $userId, 1);
 $mine = null;
 if ($enrollment !== null && $enrollment['rating'] !== null) {
@@ -162,10 +210,14 @@ sc_json(200, [
         'next'    => $next,
     ],
     'modules'  => $outline['modules'],
+    'quizzes'  => $quizzes,
+    'assignments' => $assignments,
     'reviews'  => $reviews,
     'mine'     => $mine,
     'links'    => [
         'lesson'      => url('lesson/'),
+        'quiz'        => url('quiz/'),
+        'assignment'  => url('assignment/'),
         'certificate' => url('certificate.php'),
     ],
 ]);

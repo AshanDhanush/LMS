@@ -437,12 +437,18 @@ code, kbd { font-family: var(--font-mono); font-size: 0.9em; background: var(--s
 
 .btn-danger { background: var(--danger); color: #fff; }
 [data-theme="dark"] .btn-danger { background: #d84a4a; }
+@media (prefers-color-scheme: dark) {
+  .btn-danger { background: #d84a4a; }
+}
 .btn-danger:hover { filter: brightness(0.92); }
 .btn-danger-outline { background: transparent; color: var(--danger); border-color: var(--danger); }
 .btn-danger-outline:hover { background: var(--danger-soft); }
 
 .btn-success { background: var(--success); color: #fff; }
 [data-theme="dark"] .btn-success { background: #2f9d5b; }
+@media (prefers-color-scheme: dark) {
+  .btn-success { background: #2f9d5b; }
+}
 
 .btn-sm { min-height: 36px; padding: 0 var(--space-3); font-size: var(--text-xs); }
 .btn-lg { min-height: 52px; padding: 0 var(--space-6); font-size: var(--text-base); }
@@ -483,6 +489,9 @@ code, kbd { font-family: var(--font-mono); font-size: 0.9em; background: var(--s
 .form-control:hover { border-color: var(--text-faint); }
 .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 [data-theme="dark"] .form-control:focus { box-shadow: 0 0 0 3px rgba(141, 176, 255, 0.28); }
+@media (prefers-color-scheme: dark) {
+  .form-control:focus { box-shadow: 0 0 0 3px rgba(141, 176, 255, 0.28); }
+}
 .form-control.is-invalid { border-color: var(--danger); }
 .form-control.is-invalid:focus { box-shadow: 0 0 0 3px var(--danger-soft); }
 .form-control[disabled], .form-control[readonly] { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
@@ -1000,9 +1009,6 @@ a.course-card:hover { border-color: var(--primary); text-decoration: none; }
 .mb-0 { margin-bottom: 0; } .mb-2 { margin-bottom: var(--space-2); } .mb-4 { margin-bottom: var(--space-4); } .mb-5 { margin-bottom: var(--space-5); }
 .w-full { width: 100%; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.theme-toggle .icon-light { display: none; }
-[data-theme="dark"] .theme-toggle .icon-dark { display: none; }
-[data-theme="dark"] .theme-toggle .icon-light { display: inline; }
 
 
 /* ==========================================================================

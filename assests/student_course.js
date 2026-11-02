@@ -12,7 +12,7 @@
   const $ = (selector) => page.querySelector(selector);
   const status = $('[data-status]');
   const content = $('[data-content]');
-  const TABS = ['overview', 'lessons', 'reviews'];
+  const TABS = ['overview', 'lessons', 'quizzes', 'assignments', 'reviews'];
   const TYPE_LABEL = { video: 'Video', pdf: 'PDF', powerpoint: 'Slides', text: 'Text' };
   const dateFormat = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
@@ -220,6 +220,61 @@
     }
   }
 
+  function emptyRow(text) {
+    const li = el('li');
+    li.append(el('div', 'path-row', text));
+    return li;
+  }
+
+  function renderQuizzes() {
+    const quizzes = data.quizzes || [];
+    $('[data-quizzes-meta]').textContent = plural(quizzes.length, 'quiz');
+    $('[data-quizzes]').replaceChildren(...(quizzes.length ? quizzes.map((quiz) => {
+      const li = el('li');
+      const row = el(data.enrolled ? 'a' : 'div', 'path-row');
+      if (data.enrolled) row.setAttribute('href', `${data.links.quiz}${quiz.id}`);
+      const left = quiz.max_attempts - quiz.used;
+      let state = `${plural(quiz.questions, 'question')} · Pass mark ${quiz.pass_mark}%`;
+      if (quiz.availability === 'scheduled') state += ' · Not open yet';
+      else if (quiz.availability === 'closed') state += ' · Closed';
+      else state += ` · ${plural(Math.max(0, left), 'attempt')} left`;
+      const text = el('span', 'path-row__text');
+      text.append(el('strong', null, quiz.title), el('span', 'text-muted', state));
+      row.append(el('span', 'path-row__num', '✎', { 'aria-hidden': 'true' }), text);
+      if (quiz.best !== null) {
+        row.append(el('span', `chip ${quiz.passed ? 'chip--success' : 'chip--danger'}`, `${quiz.best}% · ${quiz.passed ? 'Passed' : 'Not passed'}`));
+      } else {
+        row.append(el('span', 'path-row__state', '→', { 'aria-hidden': 'true' }));
+      }
+      li.append(row);
+      return li;
+    }) : [emptyRow('No quizzes have been added to this course yet.')]));
+  }
+
+  function renderAssignments() {
+    const items = data.assignments || [];
+    const dueFormat = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    $('[data-assignments-meta]').textContent = plural(items.length, 'assignment');
+    $('[data-assignments]').replaceChildren(...(items.length ? items.map((item) => {
+      const li = el('li');
+      const row = el(data.enrolled ? 'a' : 'div', 'path-row');
+      if (data.enrolled) row.setAttribute('href', `${data.links.assignment}${item.id}`);
+      const text = el('span', 'path-row__text');
+      text.append(el('strong', null, item.title),
+        el('span', 'text-muted', `Due ${dueFormat.format(new Date(item.due))} · ${plural(item.max_mark, 'mark')}`));
+      row.append(el('span', 'path-row__num', '📄', { 'aria-hidden': 'true' }), text);
+      const chip = {
+        graded: ['chip--success', `Graded · ${item.mark} / ${item.max_mark}`],
+        submitted: ['chip--info', 'Submitted · awaiting mark'],
+        overdue: ['chip--danger', 'Overdue'],
+        open: ['', 'Not submitted'],
+      }[item.state];
+      row.append(el('span', `chip ${chip[0]}`, chip[1]));
+      li.append(row);
+      return li;
+    }) : [emptyRow('No assignments have been added to this course yet.')]));
+  }
+
   /* --------------------------------------------------------- Reviews */
   function reviewCard(review) {
     const card = el('article', 'card review');
@@ -379,6 +434,8 @@
       renderHeader();
       renderOverview();
       renderLessons();
+      renderQuizzes();
+      renderAssignments();
       renderReviews();
       showTab(location.hash.slice(1));
     } catch (error) {

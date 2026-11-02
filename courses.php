@@ -51,6 +51,7 @@ $navIcon = static function (string $name): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course catalog | Learning Hub</title>
+    <script src="<?= $e(url('assests/theme.js')) ?>"></script>
     <link rel="stylesheet" href="<?= $e(url('assests/css/theme.css')) ?>">
     <link rel="stylesheet" href="<?= $e(url('assests/css/student_dashboard.css')) ?>">
     <link rel="stylesheet" href="<?= $e(url('assests/css/student_catalog.css')) ?>">

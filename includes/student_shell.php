@@ -65,6 +65,7 @@ function studentShellOpen(array $student, string $active, string $title, string 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= student_e($title) ?> | Learning Hub</title>
+    <script src="<?= student_e(url('assests/theme.js')) ?>"></script>
     <link rel="stylesheet" href="<?= student_e(url('assests/css/theme.css')) ?>">
     <link rel="stylesheet" href="<?= student_e(url('assests/css/student_dashboard.css')) ?>">
     <link rel="stylesheet" href="<?= student_e(url('assests/css/student_catalog.css')) ?>">
