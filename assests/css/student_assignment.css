@@ -1,0 +1,46 @@
+/* Assignment page. Theme tokens only, so light and dark (automatic, from the browser) both work. */
+
+.assignment-layout { display: grid; gap: var(--space-4); grid-template-columns: 1fr; align-items: start; }
+.assignment-card { padding: var(--space-5); }
+.assignment-card h1 { margin: var(--space-2) 0 var(--space-3); }
+.assignment-card h2 { margin: 0 0 var(--space-2); }
+.assignment-card h2:focus { outline: none; }
+.assignment-card h3 { margin: var(--space-4) 0 var(--space-1); font-size: var(--text-base); }
+.assignment-card__tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.assignment-facts { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 0 0 var(--space-3); }
+.assignment-facts div { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.assignment-facts dt { font-size: var(--text-xs); color: var(--text-muted); }
+.assignment-facts dd { margin: 2px 0 0; font-weight: 600; }
+.assignment-facts dd.text-muted { font-weight: 400; font-size: var(--text-sm); }
+.assignment-text { max-width: 70ch; }
+.assignment-text p { margin: 0 0 var(--space-3); }
+
+.assignment-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-3) 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.assignment-file__icon { display: inline-grid; place-items: center; flex: none; min-width: 44px; height: 44px; padding: 0 var(--space-2); border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-size: var(--text-xs); font-weight: 700; }
+.assignment-file__text { display: grid; flex: 1; min-width: 0; }
+.assignment-file__text strong { overflow-wrap: anywhere; }
+
+.assignment-submitted { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.assignment-grade { margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--success); border-radius: var(--radius); background: var(--success-soft); }
+.assignment-grade h3 { margin-top: 0; }
+.assignment-grade__score { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); }
+.assignment-grade__score strong { font-size: var(--text-3xl); line-height: 1.1; }
+.assignment-feedback { margin: var(--space-3) 0; padding: var(--space-3) var(--space-4); border-left: 3px solid var(--primary); border-radius: var(--radius-sm); background: var(--surface-2); }
+.assignment-feedback h3 { margin-top: 0; }
+.assignment-feedback p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Upload */
+.upload { display: grid; gap: var(--space-3); margin-top: var(--space-3); }
+.upload__input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.upload__drop { display: grid; gap: 2px; justify-items: center; padding: var(--space-5) var(--space-4); text-align: center; cursor: pointer; border: 2px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface); }
+.upload__drop:hover, .upload__drop.is-over { border-color: var(--primary); background: var(--primary-soft); }
+.upload__input:focus-visible + .upload__drop { outline: 3px solid var(--focus); outline-offset: 2px; }
+.upload__picked { display: grid; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); overflow-wrap: anywhere; }
+.upload .form-message { margin: 0; }
+.assignment-replace { margin-top: var(--space-3); }
+.assignment-replace summary { cursor: pointer; font-weight: 600; color: var(--primary-text); }
+
+@media (min-width: 1024px) {
+  .assignment-layout { grid-template-columns: 1fr 380px; }
+}

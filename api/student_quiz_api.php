@@ -13,12 +13,14 @@ declare(strict_types=1);
 | questions are saved with the attempt but are NOT part of the score or the
 | total marks, because nothing in the system marks them. The model answer is
 | shown in the review. Points: the pass mark (e.g. 80) is awarded the first
-| time the student passes a quiz, never again for the same quiz.
+| time the student passes a quiz, never again for the same quiz (see
+| includes/badges.php, which also gives badges).
 |--------------------------------------------------------------------------
 */
 
 require_once __DIR__ . '/../includes/student_course_common.php';
 require_once __DIR__ . '/api_quiz_service.php';
+require_once __DIR__ . '/../includes/badges.php';
 
 const SQ_ESSAY_MAX = 5000;
 
@@ -239,9 +241,6 @@ if ($post) {
                 ':a' => json_encode($saved, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ]);
             $points = ($passed && $total > 0 && $passedBefore === 0) ? $passMark : 0;
-            if ($points > 0) {
-                $pdo->prepare('UPDATE users SET points = points + :p WHERE id = :u')->execute([':p' => $points, ':u' => $userId]);
-            }
             $pdo->commit();
         } catch (Throwable $error) {
             if ($pdo->inTransaction()) {
@@ -250,9 +249,12 @@ if ($post) {
             throw $error;
         }
 
+        $award = badgesSync($pdo, $userId); // recalculates points and gives any new badge
         $info = sq_info($pdo, $quiz, $questions, $userId);
         sc_json(200, [
             'status' => 'ok',
+            'new_badges' => $award['new_badges'],
+            'total_points' => $award['points'],
             'result' => [
                 'attempt_number' => $info['attempts_used'],
                 'score'          => $score,

@@ -15,6 +15,7 @@ declare(strict_types=1);
 */
 
 require_once __DIR__ . '/../includes/student_course_common.php';
+require_once __DIR__ . '/../includes/badges.php';
 
 const SC_COMMENT_MAX = 500;
 
@@ -122,8 +123,11 @@ if ($post) {
                 ->execute([':u' => $userId, ':l' => $lessonId]);
         }
         $outline = sc_sync_completion($pdo, $courseId, $userId);
+        $award = badgesSync($pdo, $userId); // recalculates points and gives any new badge
         sc_json(200, [
             'status'   => 'ok',
+            'new_badges' => $award['new_badges'],
+            'total_points' => $award['points'],
             'done'     => $done,
             'progress' => ['done' => $outline['done'], 'total' => $outline['total'], 'percent' => sc_percent($outline['done'], $outline['total'])],
             'lessons'  => array_map(static fn (array $l): array => ['id' => $l['id'], 'done' => $l['done']], $outline['flat']),

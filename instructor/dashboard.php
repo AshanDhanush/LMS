@@ -119,7 +119,7 @@ try {
     if ($filter === 'urgent') $where .= ' AND s.submitted_at < NOW() - INTERVAL 48 HOUR';
     if ($filter === 'late')   $where .= ' AND s.submitted_at > a.due_date';
     $stmt = $pdo->prepare(
-        "SELECT u.name, u.email, a.title AS assignment, c.id AS course_id, c.title AS course,
+        "SELECT s.id AS submission_id, u.name, u.email, a.title AS assignment, c.id AS course_id, c.title AS course,
                 s.submitted_at, (s.submitted_at > a.due_date) AS is_late,
                 TIMESTAMPDIFF(MINUTE, s.submitted_at, NOW()) AS mins_ago
          FROM submissions s
@@ -324,7 +324,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
                             <div class="ins-table-wrap">
                                 <table class="ins-table">
                                     <thead>
-                                        <tr><th scope="col">Student</th><th scope="col">Assignment &amp; course</th><th scope="col">Submitted</th></tr>
+                                        <tr><th scope="col">Student</th><th scope="col">Assignment &amp; course</th><th scope="col">Submitted</th><th scope="col"><span class="ins-visually-hidden">Action</span></th></tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($pending as $row): ?>
@@ -347,6 +347,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
                                                 <span><?= h(date('M j, g:i A', (int) strtotime($row['submitted_at']))) ?></span>
                                                 <?php if ((int) $row['is_late'] === 1): ?><span class="ins-chip ins-chip--warning">Late</span><?php endif; ?>
                                             </td>
+                                            <td><a class="ins-btn ins-btn--small ins-btn--primary" href="<?= h(url('instructor/assignment-grading/grade/' . (int) $row['submission_id'])) ?>" aria-label="Mark <?= h($row['name']) ?>">Mark</a></td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>

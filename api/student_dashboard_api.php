@@ -134,6 +134,9 @@ function student_dashboard_api_progress(array $courses, array $lessonsByCourse, 
 /** Everything the dashboard needs for one student. */
 function student_dashboard_api_load(PDO $pdo, int $userId): array
 {
+    // Catch up on points and badges earned before badge awarding existed (safe to repeat).
+    badgesSync($pdo, $userId);
+
     // ---- The student ----
     $stmt = $pdo->prepare("SELECT name, points FROM users WHERE id = :id AND role = 'student' AND status = 'active' LIMIT 1");
     $stmt->execute(['id' => $userId]);
@@ -366,6 +369,7 @@ if (realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) {
     header('X-Content-Type-Options: nosniff');
 
     require_once __DIR__ . '/../includes/config.php';
+    require_once __DIR__ . '/../includes/badges.php';
 
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
         header('Allow: GET');

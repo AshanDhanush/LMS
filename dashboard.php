@@ -70,7 +70,7 @@ $navIcon = static function (string $name): string {
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('book') ?></span><span class="nav-label">My courses</span></a></li>
                     <li><a class="nav-item" href="<?= $e(url('courses.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('compass') ?></span><span class="nav-label">Explore courses</span></a></li>
-                    <li><a class="nav-item" href="#deadlines">
+                    <li><a class="nav-item" href="<?= $e(url('deadlines.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('clipboard') ?></span><span class="nav-label">Deadlines</span></a></li>
                     <li><a class="nav-item" href="<?= $e(url('grades.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('chart') ?></span><span class="nav-label">Grades</span></a></li>
@@ -143,7 +143,7 @@ $navIcon = static function (string $name): string {
                     <!-- Deadlines and grades -->
                     <div class="grid grid--2 dash-section">
                         <section class="card" id="deadlines" aria-labelledby="deadlines-title">
-                            <div class="card__header"><h2 class="card__title" id="deadlines-title">Upcoming deadlines</h2></div>
+                            <div class="card__header"><h2 class="card__title" id="deadlines-title">Upcoming deadlines</h2><a class="btn btn-ghost btn-sm" href="<?= $e(url('deadlines.php')) ?>">View calendar</a></div>
                             <div data-deadlines></div>
                         </section>
 

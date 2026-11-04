@@ -73,7 +73,7 @@ $navIcon = static function (string $name): string {
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('book') ?></span><span class="nav-label">My courses</span></a></li>
                     <li><a class="nav-item active" href="<?= $e(url('courses.php')) ?>" aria-current="page">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('compass') ?></span><span class="nav-label">Explore courses</span></a></li>
-                    <li><a class="nav-item" href="<?= $e(url('dashboard.php#deadlines')) ?>">
+                    <li><a class="nav-item" href="<?= $e(url('deadlines.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('clipboard') ?></span><span class="nav-label">Deadlines</span></a></li>
                     <li><a class="nav-item" href="<?= $e(url('grades.php')) ?>">
                         <span class="nav-icon" aria-hidden="true"><?= $navIcon('chart') ?></span><span class="nav-label">Grades</span></a></li>

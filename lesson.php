@@ -52,6 +52,7 @@ studentShellOpen($student, 'my-courses', 'Lesson', $attributes, ['assests/css/st
                                     <span class="text-muted" data-complete-hint>Finished learning? Save your progress.</span>
                                 </div>
                                 <p class="alert alert--success" data-finished hidden></p>
+                                <p class="alert alert--success" data-badge hidden role="status"></p>
                                 <p class="form-message" data-lesson-message role="status"></p>
 
                                 <nav class="lesson-nav" aria-label="Lesson navigation">

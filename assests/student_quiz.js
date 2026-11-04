@@ -247,7 +247,7 @@
       const result = await request('POST', { action: 'submit', answers: JSON.stringify(answers) });
       inProgress = false;
       quiz = result.quiz;
-      renderResult(result.result);
+      renderResult({ ...result.result, new_badges: result.new_badges });
       renderIntro();
       show('result');
       $('[data-result-title]').focus({ preventScroll: true });
@@ -303,6 +303,7 @@
     const chips = $('[data-result-chips]');
     chips.replaceChildren();
     if (r.points > 0) chips.append(el('span', 'chip chip--points chip--lg', `+${r.points} points earned`));
+    (r.new_badges || []).forEach((b) => chips.append(el('span', 'chip chip--success chip--lg', `${b.icon} New badge: ${b.name}`)));
     chips.append(el('span', 'chip chip--info chip--lg', plural(quiz.attempts_left, 'attempt') + ' left'));
 
     $('[data-result-reward]').textContent = passed

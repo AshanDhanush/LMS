@@ -164,6 +164,8 @@ $pageTitle = 'Assignments and Quizzes';
                     </dl>
 
                     <footer class="ins-assess-item__actions">
+                        <a class="ins-btn ins-btn--small ins-btn--primary"
+                           href="<?= assessmentFormEscape(url('instructor/assignment-grading/submissions/' . (int) $item['id'])) ?>">Submissions &amp; marking (<?= (int) $item['submission_count'] ?>)</a>
                         <a class="ins-btn ins-btn--small"
                            href="<?= assessmentFormEscape(url('instructor/assignment-grading/edit-assignment/' . (int) $item['id'])) ?>">Edit</a>
 

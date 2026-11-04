@@ -87,7 +87,7 @@ function studentShellOpen(array $student, string $active, string $title, string 
                     <?= $item('dashboard', url('dashboard.php'), 'home', 'Dashboard') ?>
                     <?= $item('my-courses', url('my_courses.php'), 'book', 'My courses') ?>
                     <?= $item('explore', url('courses.php'), 'compass', 'Explore courses') ?>
-                    <?= $item('deadlines', url('dashboard.php#deadlines'), 'clipboard', 'Deadlines') ?>
+                    <?= $item('deadlines', url('deadlines.php'), 'clipboard', 'Deadlines') ?>
                     <?= $item('grades', url('grades.php'), 'chart', 'Grades') ?>
                     <?= $item('profile', url('profile.php'), 'users', 'Profile') ?>
                 </ul>

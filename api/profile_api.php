@@ -9,6 +9,7 @@ header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/badges.php';
 
 function profile_api_json(int $statusCode, array $payload): never
 {
@@ -85,6 +86,8 @@ function profile_api_load_data(array $user): array
     $pdo = db();
     $userId = (int) $user['id'];
 
+    badgesSync($pdo, $userId); // keeps points and badges up to date (students only), before they are read below
+
     $loadProfile = $pdo->prepare(
         'SELECT name, username, email, photo, points, role, created_at, email_verified_at
          FROM users WHERE id = :id'
@@ -148,7 +151,7 @@ function profile_api_load_data(array $user): array
     $lessonCountQuery->execute(['user_id' => $userId]);
     $lessonCount = (int) $lessonCountQuery->fetchColumn();
 
-    $passedQuizQuery = $pdo->prepare('SELECT COUNT(*) FROM quiz_attempts WHERE user_id = :user_id AND passed = 1');
+    $passedQuizQuery = $pdo->prepare('SELECT COUNT(DISTINCT quiz_id) FROM quiz_attempts WHERE user_id = :user_id AND passed = 1 AND total_marks > 0');
     $passedQuizQuery->execute(['user_id' => $userId]);
     $passedQuizCount = (int) $passedQuizQuery->fetchColumn();
 

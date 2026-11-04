@@ -1017,6 +1017,8 @@ a.course-card:hover { border-color: var(--primary); text-decoration: none; }
 
 /* Phones: tables become stacked cards. Add class "table--stack" and data-label on each td. */
 @media (max-width: 599px) {
+  .topbar { gap: var(--space-2); padding-inline: var(--space-2); }
+  .topbar__brand .brand__text, .topbar__pill, .topbar__user-name, .topbar__logout { display: none; }
   .table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .table--stack, .table--stack tbody, .table--stack tr, .table--stack td { display: block; width: 100%; }
   .table-wrap:has(.table--stack) { border: 0; background: transparent; }

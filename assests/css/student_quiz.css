@@ -76,6 +76,20 @@
 .quiz-answer.is-wrong { background: var(--danger-soft); border-color: var(--danger); }
 .quiz-answer.is-neutral { background: var(--surface-2); }
 
+@media (max-width: 599px) {
+  .quiz-head, .quiz-card, .quiz-flow, .quiz-result, .quiz-review { min-width: 0; }
+  .quiz-card { padding: var(--space-4); }
+  .quiz-progress__top { flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
+  .quiz-question__text, .quiz-review__text, .quiz-result__top > div { min-width: 0; overflow-wrap: anywhere; }
+  .quiz-option__text { overflow-wrap: anywhere; }
+  .quiz-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .quiz-actions > .btn { min-width: 0; padding-inline: var(--space-2); white-space: normal; }
+  .quiz-actions--left > .btn { flex: 1 1 140px; }
+  .quiz-result__top { align-items: flex-start; }
+  .quiz-review__head { flex-wrap: wrap; }
+  .quiz-history li > * { min-width: 0; overflow-wrap: anywhere; }
+}
+
 @media (min-width: 640px) {
   .quiz-stats { grid-template-columns: repeat(3, 1fr); }
   .quiz-review__grid { grid-template-columns: 1fr 1fr; }

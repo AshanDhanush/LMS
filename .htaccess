@@ -40,6 +40,8 @@ RewriteRule ^instructor/assignment-grading/list/([0-9]+)/?$ "instructor/assignme
 RewriteRule ^instructor/assignment-grading/add/([0-9]+)/?$ "instructor/assignment and grading/assessment_add_form.php?course_id=$1" [L,QSA]
 RewriteRule ^instructor/assignment-grading/edit-assignment/([0-9]+)/?$ "instructor/assignment and grading/assignment_edit_form.php?id=$1" [L,QSA]
 RewriteRule ^instructor/assignment-grading/edit-quiz/([0-9]+)/?$ "instructor/assignment and grading/quiz_edit_form.php?id=$1" [L,QSA]
+RewriteRule ^instructor/assignment-grading/submissions/([0-9]+)/?$ "instructor/assignment and grading/assignment_submissions.php?id=$1" [L,QSA]
+RewriteRule ^instructor/assignment-grading/grade/([0-9]+)/?$ "instructor/assignment and grading/submission_grade.php?id=$1" [L,QSA]
 RewriteRule ^instructor/students/cohorts/([0-9]+)/?$ instructor/students/cohorts.php?course_id=$1 [L,QSA]
 RewriteRule ^instructor/students/cohort/([0-9]+)/?$ instructor/students/cohort_view.php?id=$1 [L,QSA]
 RewriteRule ^instructor/students/students/([0-9]+)/cohort/([0-9]+)/?$ instructor/students/students.php?course_id=$1&cohort_id=$2 [L,QSA]

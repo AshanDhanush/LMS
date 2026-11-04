@@ -150,6 +150,12 @@
       data.outline.forEach((l) => { l.done = done.get(l.id) ?? l.done; });
       renderDone();
       renderSide();
+      const badge = $('[data-badge]');
+      const earned = result.new_badges || [];
+      badge.hidden = earned.length === 0;
+      if (earned.length) {
+        badge.textContent = `${earned.map((b) => `${b.icon} New badge: ${b.name}`).join(' · ')} · You now have ${result.total_points} points.`;
+      }
       const finished = $('[data-finished]');
       finished.hidden = !result.finished;
       if (result.finished) {
