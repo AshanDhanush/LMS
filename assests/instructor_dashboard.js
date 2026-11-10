@@ -1012,3 +1012,10 @@ if (courseForm instanceof HTMLFormElement) {
         });
     });
 })();
+
+/* Back/forward cache guard. Some browsers keep a finished page in memory and show it again when the person
+   presses Back, even after they signed out. When that happens, reload so the server decides whether they may
+   still see the page (a signed-out visitor is sent to the sign-in page). */
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload();
+});

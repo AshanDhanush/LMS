@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/config.php';
 require_once dirname(__DIR__, 2) . '/includes/assessment_common.php';
+require_once dirname(__DIR__, 2) . '/includes/notifications.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -79,6 +80,14 @@ if ($isPost) {
                 'assignment' => $assignmentId,
             ]);
             assessmentCsrfRotate();
+
+            // Tell the student straight away (never blocks saving the mark).
+            notify(
+                $pdo, (int) $submission['student_id'], 'grade',
+                ($submission['mark'] !== null ? 'Your mark was updated: ' : 'Your assignment was marked: ') . (string) $submission['title'],
+                (int) $mark . ' / ' . $maxMark . ($values['feedback'] !== '' ? ' · ' . notificationExcerpt($values['feedback'], 90) : ''),
+                'assignment/' . $assignmentId
+            );
 
             // "Save and mark next": go to the next submission that is still waiting.
             if (($_POST['after'] ?? '') === 'next') {

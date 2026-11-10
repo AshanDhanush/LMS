@@ -1,0 +1,52 @@
+/* Notification bell. Theme tokens only, so light and dark (automatic) both work. */
+
+.notif { position: relative; flex: none; }
+.notif__button {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  color: var(--text-muted); background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+}
+.notif__button:hover { color: var(--primary-text); background: var(--surface-2); }
+.notif__button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.notif__button svg { width: 21px; height: 21px; }
+.notif__badge {
+  position: absolute; top: 2px; right: 1px; min-width: 18px; height: 18px; padding: 0 5px;
+  font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+  color: #fff; background: var(--danger); border-radius: 999px; box-shadow: 0 0 0 2px var(--surface);
+}
+
+.notif__panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: min(92vw, 380px); max-height: min(70vh, 520px);
+  display: flex; flex-direction: column; overflow: hidden; text-align: left;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2, var(--shadow-1, 0 10px 30px rgba(0, 0, 0, 0.18)));
+}
+.notif__panel[hidden] { display: none; }
+.notif__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+.notif__title { margin: 0; font-size: var(--text-base); }
+.notif__markall { padding: 4px 8px; font: inherit; font-size: var(--text-sm); color: var(--primary-text); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.notif__markall:hover:not(:disabled) { background: var(--primary-soft); }
+.notif__markall:disabled { color: var(--text-faint); cursor: default; }
+.notif__markall:focus-visible { outline: 3px solid var(--focus); }
+
+.notif__list { margin: 0; padding: var(--space-2); list-style: none; overflow-y: auto; }
+.notif__item + .notif__item { margin-top: 2px; }
+.notif__row { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; }
+a.notif__row:hover { background: var(--surface-2); }
+.notif__row.is-new { background: var(--primary-soft); }
+a.notif__row.is-new:hover { background: var(--surface-3); }
+.notif__row:focus-visible { outline: 3px solid var(--focus); outline-offset: -2px; }
+.notif__icon { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); font-size: 15px; }
+.notif__text { display: grid; flex: 1; min-width: 0; gap: 1px; font-size: var(--text-sm); }
+.notif__text strong { overflow-wrap: anywhere; }
+.notif__body { color: var(--text-muted); overflow-wrap: anywhere; }
+.notif__text small { color: var(--text-faint); }
+.notif__dot { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; background: var(--primary); }
+.notif__empty, .notif__error { margin: 0; padding: var(--space-5) var(--space-4); text-align: center; color: var(--text-muted); font-size: var(--text-sm); }
+.notif__error { color: var(--danger); }
+.notif__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Small screens: the panel spans the screen under the header instead of hanging off the bell */
+@media (max-width: 520px) {
+  .notif { position: static; }
+  .notif__panel { position: fixed; top: 64px; right: 8px; left: 8px; width: auto; }
+}

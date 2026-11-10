@@ -210,6 +210,8 @@ function commentValidateReply(string $raw, array &$errors): ?string
     return $reply;
 }
 
+require_once __DIR__ . '/../includes/notifications.php';
+
 function commentAddReply(PDO $pdo, array $parent, int $instructorId, string $body): void
 {
     $pdo->prepare(
@@ -221,6 +223,28 @@ function commentAddReply(PDO $pdo, array $parent, int $instructorId, string $bod
         'user'   => $instructorId,
         'body'   => $body,
     ]);
+
+    // Tell the student who wrote the comment (never blocks saving the reply).
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT cm.user_id, l.title AS lesson_title, u.name AS instructor_name
+             FROM comments cm
+             JOIN lessons l ON l.id = cm.lesson_id
+             JOIN users u ON u.id = :instructor
+             WHERE cm.id = :parent LIMIT 1'
+        );
+        $stmt->execute(['instructor' => $instructorId, 'parent' => (int) $parent['id']]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row && (int) $row['user_id'] !== $instructorId) {
+            notify(
+                $pdo, (int) $row['user_id'], 'reply',
+                (string) $row['instructor_name'] . ' replied to your comment',
+                notificationExcerpt($body, 120), 'lesson/' . (int) $parent['lesson_id']
+            );
+        }
+    } catch (Throwable $error) {
+        error_log('Comment reply notification failed: ' . $error->getMessage());
+    }
 }
 
 function commentUpdateReply(PDO $pdo, int $replyId, int $instructorId, string $body): void

@@ -109,6 +109,7 @@ function studentShellOpen(array $student, string $active, string $title, string 
                 </a>
                 <span class="topbar__pill">Student</span>
                 <span class="topbar__spacer"></span>
+                <?php require_once __DIR__ . '/notifications_bell.php'; notificationsBell(); ?>
                 <a class="topbar__user" href="<?= student_e(url('profile.php')) ?>" aria-label="View profile for <?= student_e($name) ?>">
                     <span class="topbar__avatar" aria-hidden="true"><?= student_e(sc_initials($name)) ?></span>
                     <span class="topbar__user-name"><?= student_e($name) ?></span>

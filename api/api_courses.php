@@ -4,6 +4,7 @@
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/data_cleanup.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -485,6 +486,12 @@ try {
     ]);
 
     $courseId = (int) $pdo->lastInsertId();
+
+    // Tell the admins a new course exists (never blocks creating it).
+    notifyAdmins(
+        $pdo, 'course', 'New course: ' . $title,
+        (string) $user['name'] . ' created a ' . (string) $status . ' course', 'admin/courses'
+    );
 
     courseApiResponse(201, [
         'status' => 'success',

@@ -22,6 +22,7 @@ $instructorHeaderInitials = mb_strtoupper(
     </button>
     <span class="ins-topbar__title"><?= $instructorHeaderEscape((string) ($instructorHeaderTitle ?? '')) ?></span>
     <span class="ins-topbar__spacer"></span>
+    <?php require_once dirname(__DIR__) . '/includes/notifications_bell.php'; notificationsBell(); ?>
     <a class="ins-user" href="<?= $instructorHeaderEscape(url('profile')) ?>" aria-label="View profile for <?= $instructorHeaderEscape($instructorHeaderName) ?>">
         <?php if (!empty($user['photo'])): ?>
             <img class="ins-user__avatar" src="<?= $instructorHeaderEscape(url((string) $user['photo'])) ?>" alt="" aria-hidden="true">

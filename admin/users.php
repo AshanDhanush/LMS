@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../api/api_assignment_service.php';   // assessmentDeleteStoredFile()
 require_once __DIR__ . '/../api/data_cleanup.php';
 
@@ -28,17 +29,13 @@ function initials(string $name): string
 
 function sendAccountCredentials(string $name, string $email, string $username, string $password): bool
 {
-    $safeName = h($name);
-    $safeUsername = h($username);
-    $safePassword = h($password);
-    $loginUrl = h(absUrl(''));
-    $profileUrl = h(absUrl('profile'));
-    $message = '<p>Hello ' . $safeName . ',</p>'
-        . '<p>An account has been created for you on Learning Hub.</p>'
-        . '<p><strong>Username:</strong> ' . $safeUsername . '<br>'
-        . '<strong>Temporary password:</strong> ' . $safePassword . '</p>'
-        . '<p><a href="' . $loginUrl . '">Sign in to Learning Hub</a>. '
-        . 'After signing in, change your password from your <a href="' . $profileUrl . '">profile</a>.</p>';
+    $message = renderEmailTemplate('welcome', [
+        'name' => $name,
+        'username' => $username,
+        'temporary_password' => $password,
+        'login_url' => absUrl(''),
+        'profile_url' => absUrl('profile'),
+    ]);
 
     return sendMail($email, 'Your Learning Hub account', $message);
 }

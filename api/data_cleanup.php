@@ -308,6 +308,9 @@ function dataCleanupDeleteUser(PDO $pdo, int $userId): bool
         // Announcements they wrote, badges and sign-in tokens.
         dataCleanupRun($pdo, 'DELETE FROM announcements WHERE author_id = :u', $p);
         dataCleanupRun($pdo, 'DELETE FROM user_badges WHERE user_id = :u', $p);
+        if (dataCleanupTableExists($pdo, 'notifications')) {
+            dataCleanupRun($pdo, 'DELETE FROM notifications WHERE user_id = :u', $p);
+        }
         dataCleanupRun($pdo, 'DELETE FROM user_tokens WHERE user_id = :u', $p);
 
         return dataCleanupRun($pdo, 'DELETE FROM users WHERE id = :u', $p) > 0;

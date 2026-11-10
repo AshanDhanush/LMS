@@ -263,6 +263,21 @@ CREATE TABLE `user_badges` (
   UNIQUE KEY `uq_user_badge` (`user_id`,`badge_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `notifications` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `type` varchar(40) NOT NULL,
+  `title` varchar(160) NOT NULL,
+  `body` varchar(300) DEFAULT NULL,
+  `link` varchar(255) DEFAULT NULL,
+  `dedupe_key` varchar(120) DEFAULT NULL,
+  `read_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_notifications_user` (`user_id`,`read_at`,`created_at`),
+  UNIQUE KEY `uq_notifications_dedupe` (`user_id`,`dedupe_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------------
 -- user_tokens
 -- ---------------------------------------------------------------------------

@@ -381,7 +381,7 @@ a.ins-btn--primary:hover {
 }
 
 .ins-hero h1 {
-  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.9rem);
+  font-size: clamp(1.4rem, 1.1rem + 1vw, 1.75rem);
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1.2;
@@ -482,7 +482,7 @@ a.ins-btn--primary:hover {
 
 .ins-stat__value {
   margin-top: 6px;
-  font-size: 1.9rem;
+  font-size: 1.7rem;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -.02em;
@@ -1769,7 +1769,7 @@ a.ins-btn--primary:hover {
 }
 
 .ins-lesson-hero h1 {
-  font-size: clamp(1.55rem, 3vw, 2rem);
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
   font-weight: 750;
   letter-spacing: -.035em;
 }
@@ -1916,7 +1916,7 @@ a.ins-btn--primary:hover {
 
 .ins-lesson-stat__value {
   color: var(--text);
-  font-size: 1.55rem;
+  font-size: 1.4rem;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }

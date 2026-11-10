@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/student_course_common.php';
 require_once __DIR__ . '/api_quiz_service.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 const SC_REVIEWS_PER_PAGE = 5;
 const SC_REVIEW_MAX = 500;
@@ -23,7 +24,7 @@ $userId = (int) $user['id'];
 function sc_course_row(PDO $pdo, int $courseId): ?array
 {
     $stmt = $pdo->prepare(
-        "SELECT c.id, c.title, c.description, c.thumbnail, cat.name AS category, u.name AS instructor
+        "SELECT c.id, c.title, c.description, c.thumbnail, c.instructor_id, cat.name AS category, u.name AS instructor
          FROM courses c
          JOIN users u ON u.id = c.instructor_id
          LEFT JOIN categories cat ON cat.id = c.category_id
@@ -91,7 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($_POST['action'] ?? '') !== 'review' || $courseId === false) {
         sc_json(422, ['status' => 'error', 'message' => 'A valid course is required.']);
     }
-    if (sc_course_row($pdo, $courseId) === null || sc_enrollment($pdo, $courseId, $userId) === null) {
+    $reviewCourse = sc_course_row($pdo, $courseId);
+    $reviewEnrollment = $reviewCourse !== null ? sc_enrollment($pdo, $courseId, $userId) : null;
+    if ($reviewCourse === null || $reviewEnrollment === null) {
         sc_json(403, ['status' => 'error', 'message' => 'Only enrolled students can review a course.']);
     }
     $rating = filter_var($_POST['rating'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 5]]);
@@ -106,6 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'UPDATE enrollments SET rating = :r, review = :t, reviewed_at = NOW() WHERE course_id = :c AND user_id = :u'
     );
     $stmt->execute([':r' => $rating, ':t' => $text !== '' ? $text : null, ':c' => $courseId, ':u' => $userId]);
+    // First review only (not every edit): tell the instructor (never blocks saving).
+    if ($reviewEnrollment['rating'] === null) {
+        notify(
+            $pdo, (int) $reviewCourse['instructor_id'], 'review',
+            (string) $user['name'] . ' rated ' . (string) $reviewCourse['title'] . ' ' . $rating . '/5',
+            $text !== '' ? notificationExcerpt($text, 120) : null, 'instructor/reviews/reviews'
+        );
+    }
     sc_json(200, ['status' => 'ok', 'message' => 'Thanks, your review is saved.', 'reviews' => sc_reviews($pdo, $courseId, $userId, 1)]);
 }
 

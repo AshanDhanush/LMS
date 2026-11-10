@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/config.php';
 
+// Never let the browser keep this page: pressing Back after signing in must not show the form again,
+// it must ask the server (which sends a signed-in user straight to their dashboard).
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 $user = currentUser();
 if ($user !== null) {
     redirect(dashboardPath($user['role']));
@@ -66,20 +71,22 @@ if ($user !== null) {
                     <p class="account-auth__intro">Enter your details below to continue learning.</p>
                     <p class="account-auth__status" id="login-status" role="status" aria-live="polite" hidden></p>
 
-                    <form class="account-auth__form" data-auth-action="login" data-status-id="login-status">
+                    <form class="account-auth__form" data-auth-action="login" data-status-id="login-status" novalidate>
                         <div class="form-group">
                             <label class="form-label" for="identifier">Username or email address</label>
-                            <input class="form-control" id="identifier" name="identifier" type="text" maxlength="190" placeholder="Username or you@example.com" autocomplete="username" required>
+                            <input class="form-control" id="identifier" name="identifier" type="text" maxlength="254" placeholder="Username or you@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="identifier-error" required>
+                            <p class="account-auth__field-error" id="identifier-error" role="alert" hidden></p>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label" for="password">Password</label>
                             <div class="account-auth__password-field">
-                                <input class="form-control" id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+                                <input class="form-control" id="password" name="password" type="password" maxlength="128" placeholder="Enter your password" autocomplete="current-password" aria-describedby="password-error" required>
                                 <button class="account-auth__password-toggle" type="button" data-password-toggle aria-label="Show password" aria-controls="password" aria-pressed="false" title="Show password">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /><path class="account-auth__password-toggle-slash" d="m4 4 16 16" /></svg>
                                 </button>
                             </div>
+                            <p class="account-auth__field-error" id="password-error" role="alert" hidden></p>
                         </div>
 
                         <div class="account-auth__options">

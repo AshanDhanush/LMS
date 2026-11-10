@@ -19,6 +19,7 @@ if (in_array($action, ['login', 'admin_check_email', 'admin_create_user', 'check
 function send_json(int $statusCode, array $body): never
 {
     http_response_code($statusCode);
+    header('Cache-Control: no-store');
     echo json_encode($body, JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -93,6 +94,7 @@ try {
     // config.php holds the JWT settings (JWT_SECRET, JWT_TTL, JWT_COOKIE) and the JWT functions
     // (jwtCreate, jwtVerify, setAuthCookie, currentUser). It also loads db.php.
     require_once __DIR__ . '/../includes/config.php';
+    require_once __DIR__ . '/../includes/mailer.php';
     require_once __DIR__ . '/../includes/db.php';
 
     ini_set('display_errors', '0');   // config.php shows errors on localhost; an API must only send JSON
@@ -244,8 +246,25 @@ switch ($action) {
                 : (is_string($input['email'] ?? null) ? $input['email'] : ''));
             $password = is_string($input['password'] ?? null) ? $input['password'] : '';
 
-            if ($identifier === '' || strlen($identifier) > 190 || $password === '' || strlen($password) > 4096) {
+            if ($identifier === '' || $password === '') {
                 send_json(400, ['status' => 'error', 'message' => 'Enter your username or email address and password.']);
+            }
+
+            // The sign-in page checks these too; they are repeated here because a request can skip the page.
+            if (preg_match('/[\x00-\x1F\x7F]/', $identifier) === 1) {
+                send_json(400, ['status' => 'error', 'field' => 'identifier', 'message' => 'Remove tabs, line breaks and other hidden characters.']);
+            }
+            if (mb_strlen($identifier, 'UTF-8') > 190) {
+                send_json(400, ['status' => 'error', 'field' => 'identifier', 'message' => 'Use 190 characters or fewer.']);
+            }
+            if (str_contains($identifier, '@') && filter_var($identifier, FILTER_VALIDATE_EMAIL) === false) {
+                send_json(400, ['status' => 'error', 'field' => 'identifier', 'message' => 'Enter a valid email address, like name@example.com.']);
+            }
+            if (preg_match('/[\x00-\x1F\x7F]/', $password) === 1) {
+                send_json(400, ['status' => 'error', 'field' => 'password', 'message' => 'Password contains invalid characters.']);
+            }
+            if (mb_strlen($password, 'UTF-8') > 128) {
+                send_json(400, ['status' => 'error', 'field' => 'password', 'message' => 'Password must be 128 characters or fewer.']);
             }
 
             $pdo = db();
@@ -282,7 +301,19 @@ switch ($action) {
                 send_json(423, ['status' => 'error', 'message' => 'Too many sign-in attempts. Please try again in 15 minutes.']);
             }
 
-            if (!password_verify($password, $user['password_hash'])) {
+            $passwordMatches = password_verify($password, $user['password_hash']);
+            // The same accented password can be typed in different Unicode forms (é as one character, or
+            // e + accent). If the exact text did not match, try the standard alternatives before failing.
+            if (!$passwordMatches && class_exists('Normalizer') && preg_match('/[^\x20-\x7E]/', $password) === 1) {
+                foreach ([Normalizer::FORM_C, Normalizer::FORM_D, Normalizer::FORM_KC] as $form) {
+                    $variant = Normalizer::normalize($password, $form);
+                    if (is_string($variant) && $variant !== $password && password_verify($variant, $user['password_hash'])) {
+                        $passwordMatches = true;
+                        break;
+                    }
+                }
+            }
+            if (!$passwordMatches) {
                 $recordFailure = $pdo->prepare(
                     'UPDATE users
                      SET locked_until = IF(failed_logins >= 4, DATE_ADD(NOW(), INTERVAL 15 MINUTE), locked_until),
@@ -385,9 +416,10 @@ switch ($action) {
             $tokenId = (int) $pdo->lastInsertId();
             $pdo->commit();
 
-            $html = '<p>Use this code to reset your Learning Hub password:</p>'
-                . '<p style="font-size:24px;font-weight:bold;letter-spacing:4px">' . htmlspecialchars($otp, ENT_QUOTES, 'UTF-8') . '</p>'
-                . '<p>This code expires in ' . (int) RESET_TOKEN_MINUTES . ' minutes. If you did not request a password reset, you can ignore this email.</p>';
+            $html = renderEmailTemplate('reset-password', [
+                'code' => $otp,
+                'expires_minutes' => RESET_TOKEN_MINUTES,
+            ]);
 
             if (!sendMail($email, 'Your Learning Hub password reset code', $html)) {
                 $invalidateToken = $pdo->prepare('UPDATE user_tokens SET used_at = NOW() WHERE id = :id');

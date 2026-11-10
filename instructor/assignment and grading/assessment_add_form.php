@@ -3,6 +3,7 @@
 require_once dirname(__DIR__, 2) . '/includes/config.php';
 require_once dirname(__DIR__, 2) . '/api/api_quiz_service.php';
 require_once dirname(__DIR__, 2) . '/api/api_assignment_service.php';
+require_once dirname(__DIR__, 2) . '/includes/notifications.php';
 
 
 $user = currentUser();
@@ -127,6 +128,13 @@ if ($isPost) {
                 );
                 $insertQuiz->execute(['course_id' => $courseId] + $quiz['clean']);
 
+                // Tell the students in this course (never blocks saving the quiz).
+                $newQuizId = (int) $pdo->lastInsertId();
+                notifyCourseStudents(
+                    $pdo, $courseId, 'quiz', 'New quiz: ' . (string) ($quiz['clean']['title'] ?? 'Quiz'),
+                    notificationCourseTitle($pdo, $courseId), 'quiz/' . $newQuizId
+                );
+
                 $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
 
                 redirect('instructor/assignment-grading/list/'
@@ -168,6 +176,16 @@ if ($isPost) {
                         'file_path'   => $stored['path'] ?? null,
                         'file_name'   => $stored['name'] ?? null,
                     ] + $assignment['clean']);
+
+                    // Tell the students in this course (never blocks saving the assignment).
+                    $newAssignmentId = (int) $pdo->lastInsertId();
+                    $dueText = isset($assignment['clean']['due_date'])
+                        ? ' · due ' . (new DateTimeImmutable((string) $assignment['clean']['due_date']))->format('j M, H:i')
+                        : '';
+                    notifyCourseStudents(
+                        $pdo, $courseId, 'assignment', 'New assignment: ' . (string) ($assignment['clean']['title'] ?? 'Assignment'),
+                        notificationCourseTitle($pdo, $courseId) . $dueText, 'assignment/' . $newAssignmentId
+                    );
 
                     $_SESSION['assessment_form_csrf'] = bin2hex(random_bytes(32));
 

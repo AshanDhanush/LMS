@@ -198,12 +198,30 @@ function reviewValidateReply(string $raw, array &$errors): ?string
     return $reply;
 }
 
+require_once __DIR__ . '/../includes/notifications.php';
+
 function reviewSaveReply(PDO $pdo, int $enrollmentId, ?string $reply): void
 {
+    // Was there a reply already? Only the first reply is announced, not edits.
+    $before = null;
+    if ($reply !== null) {
+        $look = $pdo->prepare('SELECT user_id, course_id, instructor_reply FROM enrollments WHERE id = :id LIMIT 1');
+        $look->execute(['id' => $enrollmentId]);
+        $before = $look->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     $stmt = $pdo->prepare(
         'UPDATE enrollments
          SET instructor_reply = :reply, replied_at = ' . ($reply === null ? 'NULL' : 'NOW()') . '
          WHERE id = :id'
     );
     $stmt->execute(['reply' => $reply, 'id' => $enrollmentId]);
+
+    // Tell the student (never blocks saving the reply).
+    if ($before !== null && $before['instructor_reply'] === null) {
+        notify(
+            $pdo, (int) $before['user_id'], 'reply', 'Your instructor replied to your review',
+            notificationExcerpt($reply, 120), 'course/' . (int) $before['course_id'] . '#reviews'
+        );
+    }
 }

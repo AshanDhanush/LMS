@@ -22,6 +22,8 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 */
 
+require_once __DIR__ . '/notifications.php';
+
 const POINTS_PER_LESSON = 10;
 const POINTS_PER_COURSE = 50;
 const BADGE_RISING_STAR_POINTS = 100;
@@ -94,6 +96,7 @@ function badgesSync(PDO $pdo, int $userId): array
         $insert->execute(['u' => $userId, 'k' => $key]);
         if ($insert->rowCount() === 1) { // 0 means the student already had it
             $new[] = ['key' => $key] + $catalog[$key];
+            notify($pdo, $userId, 'badge', 'New badge: ' . $catalog[$key]['name'], $catalog[$key]['hint'], 'profile', 'badge:' . $key);
         }
     }
 

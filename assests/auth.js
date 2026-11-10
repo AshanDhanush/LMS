@@ -114,8 +114,99 @@ if (authForm) {
     });
   }
 
+
+  /* ------------------------------------------------------------------
+     Sign-in form validation (inline messages under each field).
+     The server checks the same rules again, so skipping this script does
+     not skip the checks.
+       Identifier: an email address, or a username (letters, numbers, - and _).
+       Email: one @, letters/numbers/. _ % + ' - before it, a real domain after it.
+       Password: not trimmed; no tabs/line breaks/control characters; 128 max.
+     ------------------------------------------------------------------ */
+  const identifierInput = action === 'login' ? authForm.elements.identifier : null;
+  const passwordInput = action === 'login' ? authForm.elements.password : null;
+  const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F-\u009F]/;
+  const USERNAME_PATTERN = /^[\p{L}\p{M}\p{N}_-]{3,64}$/u;
+  const DOMAIN_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+  const MAX_IDENTIFIER = 190;
+  const MAX_PASSWORD = 128;
+
+  function isValidEmail(value) {
+    const parts = value.split('@');
+    if (parts.length !== 2) return false;
+    const [local, domain] = parts;
+    if (local.length < 1 || local.length > 64 || !/^[A-Za-z0-9._%+'-]+$/.test(local)) return false;
+    if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+    const labels = domain.split('.');
+    if (labels.length < 2 || !labels.every((label) => DOMAIN_LABEL.test(label))) return false;
+    return /^[A-Za-z]{2,}$/.test(labels[labels.length - 1]);
+  }
+
+  function identifierProblem(raw) {
+    const value = raw.trim();
+    if (value === '') return 'Enter your username or email address.';
+    if (CONTROL_CHARACTERS.test(value)) return 'Remove tabs, line breaks and other hidden characters.';
+    if (value.length > MAX_IDENTIFIER) return `Use ${MAX_IDENTIFIER} characters or fewer.`;
+    if (value.includes('@')) return isValidEmail(value) ? '' : 'Enter a valid email address, like name@example.com.';
+    return USERNAME_PATTERN.test(value) ? '' : 'Enter a valid email address, or a username using letters, numbers, - and _.';
+  }
+
+  function passwordProblem(value) {
+    if (value === '') return 'Enter your password.';
+    if (CONTROL_CHARACTERS.test(value)) return 'Password contains invalid characters.';
+    if (value.length > MAX_PASSWORD) return `Password must be ${MAX_PASSWORD} characters or fewer.`;
+    return '';
+  }
+
+  function showFieldError(input, message) {
+    const error = document.getElementById(input.getAttribute('aria-describedby'));
+    if (error) {
+      error.textContent = message;
+      error.hidden = message === '';
+    }
+    input.setAttribute('aria-invalid', String(message !== ''));
+  }
+
+  function checkIdentifier() {
+    const message = identifierProblem(identifierInput.value);
+    showFieldError(identifierInput, message);
+    return message === '';
+  }
+
+  function checkPassword() {
+    const message = passwordProblem(passwordInput.value);
+    showFieldError(passwordInput, message);
+    return message === '';
+  }
+
+  function validateLogin() {
+    // Check both so every problem is shown at once, then focus the first one.
+    const identifierOk = checkIdentifier();
+    const passwordOk = checkPassword();
+    if (!identifierOk) identifierInput.focus();
+    else if (!passwordOk) passwordInput.focus();
+    return identifierOk && passwordOk;
+  }
+
+  if (identifierInput && passwordInput) {
+    // Tidy the identifier when the person leaves the field (spaces around it are dropped).
+    identifierInput.addEventListener('blur', () => {
+      identifierInput.value = identifierInput.value.trim();
+      if (identifierInput.value !== '') checkIdentifier();
+    });
+    // Once a message is showing, re-check while typing so it clears as soon as the problem is fixed.
+    identifierInput.addEventListener('input', () => {
+      if (identifierInput.getAttribute('aria-invalid') === 'true') checkIdentifier();
+    });
+    passwordInput.addEventListener('input', () => {
+      if (passwordInput.getAttribute('aria-invalid') === 'true') checkPassword();
+    });
+  }
+
   authForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (submitButton.disabled) return; // a request is already on its way: never send a second one
+    if (action === 'login' && !validateLogin()) return;
     if (nameInput && !validateFullname()) {
       nameInput.focus();
       return;
@@ -126,7 +217,7 @@ if (authForm) {
       return;
     }
 
-    if (!authForm.reportValidity()) return;
+    if (action !== 'login' && !authForm.reportValidity()) return;
 
     if (isRegistration && authForm.elements.password.value !== authForm.elements.password_confirmation.value) {
       status.dataset.state = 'error';
@@ -142,6 +233,7 @@ if (authForm) {
     submitLabel.textContent = isRegistration ? 'Creating account…' : 'Signing in…';
 
     const payload = Object.fromEntries(new FormData(authForm).entries());
+    if (identifierInput) payload.identifier = identifierInput.value.trim(); // the password is sent exactly as typed
 
     try {
       const response = await fetch(`${endpoint}?action=${encodeURIComponent(action)}`, {
@@ -158,6 +250,12 @@ if (authForm) {
           emailInput.focus();
           return;
         }
+        if (identifierInput && (result.field === 'identifier' || result.field === 'password')) {
+          const input = result.field === 'identifier' ? identifierInput : passwordInput;
+          showFieldError(input, result.message || 'Check this field.');
+          input.focus();
+          return;
+        }
         if (result.field === 'name' && nameError) {
           nameError.textContent = result.message || 'Check the full name.';
           nameError.hidden = false;
@@ -171,7 +269,9 @@ if (authForm) {
       status.dataset.state = 'success';
       status.textContent = result.message;
       status.hidden = false;
-      window.location.assign(result.redirect || 'index.php');
+      // replace(), not assign(): the sign-in page must not stay in the history, or Back would return to it.
+      if (action === 'login') window.location.replace(result.redirect || 'index.php');
+      else window.location.assign(result.redirect || 'index.php');
     } catch (error) {
       status.dataset.state = 'error';
       status.textContent = error instanceof Error

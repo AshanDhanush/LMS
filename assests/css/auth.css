@@ -252,3 +252,8 @@
   color: var(--text-muted);
 }
 .account-auth__reset-step { margin-top: var(--space-4); }
+/* Inline field errors on the sign-in form (text + icon cue, not colour alone) */
+.account-auth__field-error { margin: var(--space-1, 4px) 0 0; font-size: var(--text-sm, 0.875rem); color: var(--danger, #b42318); }
+.account-auth__field-error:not([hidden])::before { content: "⚠ "; }
+.account-auth__form .form-control[aria-invalid="true"] { border-color: var(--danger, #b42318); }
+.account-auth__form .form-control[aria-invalid="true"]:focus { outline-color: var(--danger, #b42318); }

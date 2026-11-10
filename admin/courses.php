@@ -443,7 +443,7 @@ require __DIR__ . '/header.php';
                                         <td class="admin-table__date"><?= h(date('j M Y', (int) strtotime((string) $row['created_at']))) ?></td>
                                         <td>
                                             <div class="admin-actions">
-                                                <a class="admin-btn" href="<?= h(url('admin/courses/edit/' . (int) $row['id'])) ?>">Edit</a>
+                                                <a class="admin-btn admin-edit-btn" href="<?= h(url('admin/courses/edit/' . (int) $row['id'])) ?>">Edit</a>
 
                                                 <form method="post" action="" class="admin-delete-form"
                                                       data-confirm="Delete the course &quot;<?= h($row['title']) ?>&quot;? This permanently deletes its <?= (int) $row['lessons'] ?> lesson(s), <?= (int) $row['students'] ?> enrolment(s) with the students' progress, and all its assignments, submissions and quizzes. This cannot be undone.">

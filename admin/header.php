@@ -46,9 +46,7 @@ $adminPageTitle = $adminPageTitle ?? 'Learning Hub Admin';
                 <button type="button" aria-label="Toggle user suggestions" aria-expanded="false" data-user-search-toggle>▼</button>
                 <ul id="admin-user-search-suggestions" class="user-search-suggestions" role="listbox" hidden data-user-search-suggestions></ul>
             </form>
-            <span class="admin-notification" role="img" aria-label="Notifications">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
-            </span>
+            <?php require_once dirname(__DIR__) . '/includes/notifications_bell.php'; notificationsBell(); ?>
             <a class="admin-user" href="<?= h(url('profile')) ?>" aria-label="View profile for <?= h($headerName) ?>">
                 <?php if (!empty($headerUser['photo'])): ?>
                     <img class="admin-user__avatar" src="<?= h(url((string) $headerUser['photo'])) ?>" alt="" aria-hidden="true">

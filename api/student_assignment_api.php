@@ -16,7 +16,9 @@ declare(strict_types=1);
 */
 
 require_once __DIR__ . '/../includes/student_course_common.php';
+require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/api_assignment_service.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 [$pdo, $user] = sc_api_start();
 $userId = (int) $user['id'];
@@ -39,7 +41,7 @@ if ($assignmentId === false) {
 }
 
 $stmt = $pdo->prepare(
-    "SELECT a.*, c.title AS course_title, u.name AS instructor
+    "SELECT a.*, c.title AS course_title, c.instructor_id, u.name AS instructor
      FROM assignments a
      JOIN courses c ON c.id = a.course_id AND c.status = 'published'
      JOIN users u ON u.id = c.instructor_id
@@ -179,6 +181,7 @@ if ($post) {
     $relative = 'uploads/submissions/' . $storedName;
 
     $oldPath = null;
+    $insertedId = 0;
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare('SELECT id, file_path, mark FROM submissions WHERE assignment_id = :a AND student_id = :s FOR UPDATE');
@@ -196,6 +199,7 @@ if ($post) {
         } else {
             $pdo->prepare('INSERT INTO submissions (assignment_id, student_id, file_path) VALUES (:a, :s, :f)')
                 ->execute([':a' => $assignmentId, ':s' => $userId, ':f' => $relative]);
+            $insertedId = (int) $pdo->lastInsertId(); // must be read before commit(), which resets it
         }
         $pdo->commit();
     } catch (Throwable $error) {
@@ -207,6 +211,33 @@ if ($post) {
     }
     if ($oldPath !== null && $oldPath !== $relative) {
         assessmentDeleteStoredFile($oldPath); // the replaced file
+    }
+
+    // Tell the instructor there is something to mark (never blocks the submission).
+    $submissionId = $row ? (int) $row['id'] : $insertedId;
+    $isLate = new DateTimeImmutable() > new DateTimeImmutable((string) $assignment['due_date']);
+    notify(
+        $pdo, (int) $assignment['instructor_id'], 'submission',
+        (string) $user['name'] . ($oldPath !== null ? ' replaced their submission: ' : ' submitted: ') . (string) $assignment['title'],
+        (string) $assignment['course_title'] . ($isLate ? ' · Late' : ''),
+        'instructor/assignment-grading/grade/' . $submissionId
+    );
+
+    try {
+        $emailHtml = renderEmailTemplate('assignment-submitted', [
+            'name' => (string) $user['name'],
+            'assignment_title' => (string) $assignment['title'],
+            'course_title' => (string) $assignment['course_title'],
+            'file_name' => sa_display_name($relative),
+            'is_late' => $isLate,
+            'is_replacement' => $oldPath !== null,
+            'assignment_url' => absUrl('assignment/' . $assignmentId),
+        ]);
+        if (!sendMail((string) $user['email'], 'Assignment submission confirmation', $emailHtml)) {
+            error_log('Assignment confirmation email could not be sent for submission ' . $submissionId . '.');
+        }
+    } catch (Throwable $error) {
+        error_log('Assignment confirmation email failed for submission ' . $submissionId . ': ' . $error->getMessage());
     }
 
     sc_json(200, [

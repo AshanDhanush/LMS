@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/student_course_common.php';
 require_once __DIR__ . '/../includes/badges.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 const SC_COMMENT_MAX = 500;
 
@@ -36,7 +37,7 @@ if ($lessonId === false) {
 }
 
 $stmt = $pdo->prepare(
-    "SELECT l.*, c.title AS course_title, u.name AS instructor
+    "SELECT l.*, c.title AS course_title, c.instructor_id, u.name AS instructor
      FROM lessons l
      JOIN courses c ON c.id = l.course_id AND c.status = 'published'
      JOIN users u ON u.id = c.instructor_id
@@ -123,6 +124,12 @@ if ($post) {
                 ->execute([':u' => $userId, ':l' => $lessonId]);
         }
         $outline = sc_sync_completion($pdo, $courseId, $userId);
+        if ($done && $outline['total'] > 0 && $outline['done'] >= $outline['total'] && $enrollment['completed_at'] === null) {
+            notify(
+                $pdo, $userId, 'course', 'You completed ' . (string) $lesson['course_title'] . '!',
+                'Every lesson is done. Well done.', 'course/' . $courseId, 'completed:course:' . $courseId
+            );
+        }
         $award = badgesSync($pdo, $userId); // recalculates points and gives any new badge
         sc_json(200, [
             'status'   => 'ok',
@@ -142,6 +149,12 @@ if ($post) {
         }
         $pdo->prepare('INSERT INTO comments (lesson_id, user_id, body) VALUES (:l, :u, :b)')
             ->execute([':l' => $lessonId, ':u' => $userId, ':b' => $body]);
+        // Tell the instructor (never blocks posting the comment).
+        notify(
+            $pdo, (int) $lesson['instructor_id'], 'comment',
+            (string) $user['name'] . ' commented on ' . (string) $lesson['title'],
+            notificationExcerpt($body, 120), 'instructor/reviews/comments'
+        );
         sc_json(200, ['status' => 'ok', 'comments' => sc_comments($pdo, $lessonId, $userId)]);
     }
 

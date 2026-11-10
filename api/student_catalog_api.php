@@ -15,6 +15,7 @@ declare(strict_types=1);
 */
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 const CATALOG_PER_PAGE = 9;
 
@@ -88,15 +89,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         catalog_json(422, ['status' => 'error', 'message' => 'A valid course is required.']);
     }
 
-    $stmt = $pdo->prepare("SELECT id FROM courses WHERE id = :id AND status = 'published' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, instructor_id, title FROM courses WHERE id = :id AND status = 'published' LIMIT 1");
     $stmt->execute([':id' => $courseId]);
-    if ($stmt->fetchColumn() === false) {
+    $enrolCourse = $stmt->fetch();
+    if (!$enrolCourse) {
         catalog_json(404, ['status' => 'error', 'message' => 'That course is not available.']);
     }
 
     // The unique key (user_id, course_id) makes this safe to repeat.
     $stmt = $pdo->prepare('INSERT IGNORE INTO enrollments (user_id, course_id) VALUES (:user, :course)');
     $stmt->execute([':user' => $userId, ':course' => $courseId]);
+
+    // First time only: tell the instructor a new student joined (never blocks enrolling).
+    if ($stmt->rowCount() === 1) {
+        notify(
+            $pdo, (int) $enrolCourse['instructor_id'], 'enrollment',
+            (string) $user['name'] . ' enrolled in ' . (string) $enrolCourse['title'],
+            null, 'instructor/students/students/' . $courseId
+        );
+    }
 
     catalog_json(200, [
         'status'   => 'ok',

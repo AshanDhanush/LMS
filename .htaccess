@@ -53,3 +53,12 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+?)/?$ $1.php [L]
+
+# Pages and API answers are never kept by the browser. Without this, Back after signing in shows the
+# sign-in form again, and Back after signing out shows a saved copy of a protected page.
+<IfModule mod_headers.c>
+    <FilesMatch "\.php$">
+        Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header always set Pragma "no-cache"
+    </FilesMatch>
+</IfModule>
