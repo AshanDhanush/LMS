@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/limitation.php';
+
 function renderEmailTemplate(string $template, array $data = []): string
 {
     $templates = [

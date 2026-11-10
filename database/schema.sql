@@ -271,6 +271,7 @@ CREATE TABLE `notifications` (
   `body` varchar(300) DEFAULT NULL,
   `link` varchar(255) DEFAULT NULL,
   `dedupe_key` varchar(120) DEFAULT NULL,
+  `email_count` int(10) unsigned NOT NULL DEFAULT 0,
   `read_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),

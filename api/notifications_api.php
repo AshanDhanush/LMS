@@ -58,7 +58,7 @@ $pdo = db();
 
 function notifications_unread(PDO $pdo, int $userId): int
 {
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = :u AND read_at IS NULL');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :u AND read_at IS NULL AND type <> 'email_quota'");
     $stmt->execute(['u' => $userId]);
     return (int) $stmt->fetchColumn();
 }
@@ -101,7 +101,7 @@ $pdo->prepare('DELETE FROM notifications WHERE user_id = :u AND read_at IS NOT N
 
 $stmt = $pdo->prepare(
     'SELECT id, type, title, body, link, read_at, created_at FROM notifications
-     WHERE user_id = :u ORDER BY created_at DESC, id DESC LIMIT ' . NOTIFICATIONS_PAGE_SIZE
+     WHERE user_id = :u AND type <> \'email_quota\' ORDER BY created_at DESC, id DESC LIMIT ' . NOTIFICATIONS_PAGE_SIZE
 );
 $stmt->execute(['u' => $userId]);
 
