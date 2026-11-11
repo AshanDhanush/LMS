@@ -231,6 +231,18 @@
   .account-auth { padding-inline: var(--space-6); }
 }
 
+@media (min-width: 900px) {
+  .account-auth { padding: 0; }
+  .account-auth__shell {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 .account-auth__reset-content { max-width: 440px; }
 .account-auth__back-link {
   display: inline-block;

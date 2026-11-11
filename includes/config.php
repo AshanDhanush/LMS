@@ -12,8 +12,8 @@ function envValue(string $name, string $default = ''): string
 define('DB_HOST', envValue('DB_HOST', 'lms-ashan-db.mysql.database.azure.com'));
 define('DB_PORT', envValue('DB_PORT', '3306'));
 define('DB_NAME', envValue('DB_NAME', 'lms_db'));
-define('DB_USER', envValue('DB_USER', 'lmsadmin'));
-define('DB_PASS', envValue('DB_PASS', 'Madumali@123'));
+define('DB_USER', envValue('DB_USER', 'root'));
+define('DB_PASS', envValue('DB_PASS', ''));
 
 // true on your computer. On Azure we set IS_LOCAL=false.
 define('IS_LOCAL', filter_var(envValue('IS_LOCAL', 'true'), FILTER_VALIDATE_BOOLEAN));
