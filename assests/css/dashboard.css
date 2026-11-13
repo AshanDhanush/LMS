@@ -527,3 +527,35 @@ img.admin-user__avatar { object-fit: cover; }
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
   gap: 12px; margin-top: 16px;
 }
+
+/* ---------- Reports page ---------- */
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.admin-tabs__link {
+  padding: 8px 14px; border: 1px solid var(--a-border); border-radius: 999px;
+  background: var(--a-surface); color: var(--a-text); font-size: .875rem; text-decoration: none;
+}
+.admin-tabs__link:hover { background: var(--a-surface-2); }
+.admin-tabs__link--active { background: var(--a-primary); border-color: var(--a-primary); color: var(--a-on-primary); }
+.admin-filter-form--labeled label { display: grid; gap: 4px; font-size: .8125rem; color: var(--a-muted); }
+a.admin-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* ---------- Admin tools: reviews, bulk actions, sidebar badge ---------- */
+.admin-sidebar__badge {
+  margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px;
+  background: var(--a-warning-soft); color: var(--a-warning); font-size: .75rem; font-weight: 600; text-align: center;
+}
+.admin-review { padding: 16px 0; border-top: 1px solid var(--a-border); display: grid; gap: 10px; }
+.admin-review:first-of-type { border-top: 0; padding-top: 0; }
+.admin-review__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.admin-review__title { margin: 0; font-size: 1.05rem; }
+.admin-review__text { color: var(--a-text); }
+.admin-review__lessons { margin: 8px 0 0; padding-left: 20px; font-size: .875rem; }
+.admin-review__form { display: grid; gap: 8px; }
+.admin-review__form label { font-size: .8125rem; color: var(--a-muted); }
+.admin-review__form textarea {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--a-border); border-radius: var(--radius);
+  background: var(--a-surface); color: var(--a-text); font: inherit; resize: vertical;
+}
+.admin-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px; }
+.admin-table input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+.admin-table input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }

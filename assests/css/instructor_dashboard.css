@@ -1300,6 +1300,10 @@ a.ins-btn--primary:hover {
   color: var(--n-muted);
 }
 
+.ins-grid-card__badge .ins-chip--warning {
+  color: var(--n-warning);
+}
+
 /* Course title, lesson count, date and enrollment */
 
 .ins-grid-card__body {

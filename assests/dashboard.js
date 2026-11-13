@@ -190,3 +190,42 @@ if (searchForm) {
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) window.location.reload();
 });
+
+/* Users page: select several users and apply one action to all of them */
+const bulkForm = document.querySelector('[data-bulk-form]');
+if (bulkForm instanceof HTMLFormElement) {
+  const rowBoxes = () => Array.from(document.querySelectorAll('[data-select-row]')).filter((box) => !box.disabled);
+  const selectAll = document.querySelector('[data-select-all]');
+  const submitButton = bulkForm.querySelector('[data-bulk-submit]');
+  const countLabel = bulkForm.querySelector('[data-bulk-count]');
+  const actionSelect = bulkForm.querySelector('[data-bulk-action]');
+
+  const refreshBulk = () => {
+    const boxes = rowBoxes();
+    const chosen = boxes.filter((box) => box.checked).length;
+    if (countLabel) countLabel.textContent = chosen + ' selected';
+    if (submitButton) submitButton.disabled = chosen === 0;
+    if (selectAll instanceof HTMLInputElement) {
+      selectAll.checked = boxes.length > 0 && chosen === boxes.length;
+      selectAll.indeterminate = chosen > 0 && chosen < boxes.length;
+    }
+  };
+
+  if (selectAll instanceof HTMLInputElement) {
+    selectAll.addEventListener('change', () => {
+      rowBoxes().forEach((box) => { box.checked = selectAll.checked; });
+      refreshBulk();
+    });
+  }
+  document.querySelectorAll('[data-select-row]').forEach((box) => box.addEventListener('change', refreshBulk));
+
+  bulkForm.addEventListener('submit', (event) => {
+    const chosen = rowBoxes().filter((box) => box.checked).length;
+    if (actionSelect instanceof HTMLSelectElement && actionSelect.value === 'delete') {
+      if (!window.confirm('Delete ' + chosen + ' user(s) and everything that belongs to them? This cannot be undone.')) {
+        event.preventDefault();
+      }
+    }
+  });
+  refreshBulk();
+}

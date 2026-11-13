@@ -21,11 +21,10 @@ if ($user !== null) {
     <meta name="description" content="Sign in to your learning account.">
     <title>Sign in | Learning Hub</title>
     <link rel="stylesheet" href="<?= htmlspecialchars(url('assests/css/theme.css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
-    <link rel="stylesheet" href="<?= htmlspecialchars(url('assests/css/auth.css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(url('assests/css/auth.css') . '?v=' . (int) filemtime(__DIR__ . '/assests/css/auth.css'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
 </head>
 <body>
-    <main class="account-auth">
-        <section class="account-auth__shell" aria-label="Sign in to Learning Hub">
+    <main class="account-auth" aria-label="Sign in to Learning Hub">
             <aside class="account-auth__welcome">
                 <a class="account-auth__brand" href="./" aria-label="Learning Hub home">
                     <span class="account-auth__brand-mark" aria-hidden="true">L</span>
@@ -165,7 +164,6 @@ if ($user !== null) {
                     <span>Learn something new today.</span>
                 </footer>
             </section>
-        </section>
     </main>
     <script src="assests/auth.js?v=<?php echo (int) filemtime(__DIR__ . '/assests/auth.js'); ?>" defer></script>
 </body>

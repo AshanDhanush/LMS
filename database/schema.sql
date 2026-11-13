@@ -2,7 +2,7 @@
 -- Learning Hub (LMS) database schema: structure only, no data
 --
 --   * Database : lms_db   (MariaDB / MySQL, InnoDB, utf8mb4)
---   * Tables   : 17
+--   * Tables   : 18
 --   * Primary keys, unique keys and indexes are kept.
 --   * There are NO foreign keys. The application removes related rows itself
 --     (see api/data_cleanup.php), so deleting a course, user, quiz and so on
@@ -113,7 +113,11 @@ CREATE TABLE `courses` (
   `title` varchar(190) NOT NULL,
   `description` text DEFAULT NULL,
   `thumbnail` varchar(255) DEFAULT NULL,
-  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  `status` enum('draft','pending','published') NOT NULL DEFAULT 'draft',
+  `submitted_at` datetime DEFAULT NULL,
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `review_note` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -319,4 +323,26 @@ CREATE TABLE `users` (
   UNIQUE KEY `uq_users_username` (`username`),
   KEY `idx_users_role_status` (`role`,`status`),
   KEY `idx_users_points` (`points`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- audit_logs (who changed or deleted what)
+-- ---------------------------------------------------------------------------
+CREATE TABLE `audit_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `actor_id` int(10) unsigned DEFAULT NULL,
+  `actor_name` varchar(100) NOT NULL DEFAULT '',
+  `actor_role` varchar(20) NOT NULL DEFAULT '',
+  `action` varchar(60) NOT NULL,
+  `entity_type` varchar(30) NOT NULL,
+  `entity_id` int(10) unsigned DEFAULT NULL,
+  `summary` varchar(255) NOT NULL,
+  `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_created` (`created_at`),
+  KEY `idx_audit_actor` (`actor_id`,`created_at`),
+  KEY `idx_audit_entity` (`entity_type`,`entity_id`),
+  KEY `idx_audit_action` (`action`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

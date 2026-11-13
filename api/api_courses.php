@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/data_cleanup.php';
 require_once __DIR__ . '/../includes/notifications.php';
+require_once __DIR__ . '/../includes/audit.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -129,7 +130,7 @@ if ($action === 'delete') {
 
         // Confirm that the course belongs to this instructor.
         $findCourse = $pdo->prepare(
-            'SELECT id, thumbnail
+            'SELECT id, title, status, thumbnail
              FROM courses
              WHERE id = :course_id
                AND instructor_id = :instructor_id
@@ -165,6 +166,9 @@ if ($action === 'delete') {
                 'message' => 'The course was not found or has already been deleted.'
             ]);
         }
+
+        auditLog($pdo, $user, 'course.delete', 'course', (int) $courseIdToDelete,
+            'Instructor deleted course "' . (string) $course['title'] . '"', ['status' => (string) $course['status']]);
 
         // Remove the thumbnail only after the database deletion succeeds.
         courseApiDeleteThumbnail($thumbnailToDelete);
@@ -280,7 +284,7 @@ try {
 
         $courseId = (int) $validatedCourseId;
         $courseLookup = $pdo->prepare(
-            'SELECT id, thumbnail
+            'SELECT id, title, status, thumbnail
              FROM courses
              WHERE id = :course_id AND instructor_id = :instructor_id
              LIMIT 1'
@@ -431,6 +435,15 @@ if (is_array($upload)) {
     }
 }
 
+// Course review: once the review step is switched on, an instructor submits a course
+// ("pending") and an admin publishes it. A course that is already published stays published.
+$wasStatus = (string) ($existingCourse['status'] ?? '');
+$submittedForReview = false;
+if ($status === 'published' && $wasStatus !== 'published' && courseReviewReady($pdo)) {
+    $status = 'pending';
+    $submittedForReview = $wasStatus !== 'pending';
+}
+
 try {
     if ($action === 'update') {
         $updateCourse = $pdo->prepare(
@@ -452,6 +465,18 @@ try {
             'instructor_id' => (int) $user['id'],
         ]);
 
+        auditLog($pdo, $user, 'course.update', 'course', $courseId,
+            'Instructor updated course "' . $title . '"',
+            array_filter(['title_before' => (string) ($existingCourse['title'] ?? '') !== $title ? (string) ($existingCourse['title'] ?? '') : null,
+                'status_from' => $wasStatus !== $status ? $wasStatus : null, 'status_to' => $wasStatus !== $status ? $status : null]));
+
+        if ($submittedForReview) {
+            $pdo->prepare('UPDATE courses SET submitted_at = NOW() WHERE id = :id')->execute(['id' => $courseId]);
+            notifyAdmins($pdo, 'course', 'Course waiting for review: ' . $title,
+                (string) $user['name'] . ' submitted a course for review', 'admin/reviews');
+            auditLog($pdo, $user, 'course.submit', 'course', $courseId, 'Submitted course "' . $title . '" for review');
+        }
+
         if ($thumbnailDestination !== null) {
             courseApiDeleteThumbnail(
                 is_string($existingCourse['thumbnail'] ?? null)
@@ -462,7 +487,9 @@ try {
 
         courseApiResponse(200, [
             'status' => 'success',
-            'message' => 'Your course was updated successfully.',
+            'message' => $status === 'pending'
+                ? 'Your course was saved and is waiting for admin approval. Students will see it once it is approved.'
+                : 'Your course was updated successfully.',
             'course_id' => $courseId,
             'redirect' => url(
                 'instructor/courses/courses_edit_form/' . $courseId . '?updated=1'
@@ -488,14 +515,26 @@ try {
     $courseId = (int) $pdo->lastInsertId();
 
     // Tell the admins a new course exists (never blocks creating it).
-    notifyAdmins(
-        $pdo, 'course', 'New course: ' . $title,
-        (string) $user['name'] . ' created a ' . (string) $status . ' course', 'admin/courses'
-    );
+    if ($status === 'pending') {
+        $pdo->prepare('UPDATE courses SET submitted_at = NOW() WHERE id = :id')->execute(['id' => $courseId]);
+        notifyAdmins(
+            $pdo, 'course', 'Course waiting for review: ' . $title,
+            (string) $user['name'] . ' submitted a new course for review', 'admin/reviews'
+        );
+    } else {
+        notifyAdmins(
+            $pdo, 'course', 'New course: ' . $title,
+            (string) $user['name'] . ' created a ' . (string) $status . ' course', 'admin/courses'
+        );
+    }
+    auditLog($pdo, $user, 'course.create', 'course', $courseId,
+        'Instructor created course "' . $title . '" (' . $status . ')');
 
     courseApiResponse(201, [
         'status' => 'success',
-        'message' => 'Your course was created successfully.',
+        'message' => $status === 'pending'
+            ? 'Your course was created and is waiting for admin approval. Students will see it once it is approved.'
+            : 'Your course was created successfully.',
         'course_id' => $courseId,
         'redirect' => url('instructor/courses/coureses_add_form.php?created=1')
     ]);

@@ -200,6 +200,7 @@ $stmt = $pdo->prepare(
                             <select class="ins-input" id="courseStatus">
                                 <option value="">All statuses</option>
                                 <option value="published">Published</option>
+                                <option value="pending">Pending review</option>
                                 <option value="draft">Draft</option>
                             </select>
                         </div>
@@ -232,6 +233,8 @@ $stmt = $pdo->prepare(
                                 <div class="ins-grid-card__badge">
                                     <?php if ($course['status'] === 'published'): ?>
                                         <span class="ins-chip ins-chip--success">Published</span>
+                                    <?php elseif ($course['status'] === 'pending'): ?>
+                                        <span class="ins-chip ins-chip--warning">Pending review</span>
                                     <?php else: ?>
                                         <span class="ins-chip ins-chip--muted">Draft</span>
                                     <?php endif; ?>

@@ -73,7 +73,7 @@ $pdo = db();
 */
 
 $stmt = $pdo->prepare(
-    'SELECT id, title, status
+    'SELECT *
      FROM courses
      WHERE id = :course_id
        AND instructor_id = :instructor_id
@@ -630,9 +630,16 @@ $pageTitle = 'Manage Course Curriculum';
                 <p>
                     <strong>Course status</strong><br>
                     <?= courseModulesPageEscape(
-                        ucfirst((string) $course['status'])
+                        $course['status'] === 'pending' ? 'Waiting for admin review' : ucfirst((string) $course['status'])
                     ) ?>
                 </p>
+
+                <?php if ($course['status'] === 'draft' && !empty($course['review_note'])): ?>
+                <p>
+                    <strong>Admin note</strong><br>
+                    <?= courseModulesPageEscape((string) $course['review_note']) ?>
+                </p>
+                <?php endif; ?>
 
                 <p>
                     <strong>Modules</strong><br>

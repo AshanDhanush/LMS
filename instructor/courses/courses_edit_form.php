@@ -2,6 +2,14 @@
 <?php
 
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/audit.php';
+
+$reviewOn = false;
+try {
+    $reviewOn = courseReviewReady(db());
+} catch (Throwable $error) {
+    $reviewOn = false;
+}
 
 $user = currentUser();
 
@@ -286,8 +294,9 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
                             </option>
 
                             <option value="published"
-                                <?= $course['status'] === 'published' ? 'selected' : '' ?>>
-                                Publish course
+                                <?= in_array($course['status'], ['published', 'pending'], true) ? 'selected' : '' ?>>
+                                <?= $course['status'] === 'pending' ? 'Waiting for admin review'
+                                    : ($reviewOn && $course['status'] !== 'published' ? 'Submit for review' : 'Publish course') ?>
                             </option>
 
                         </select>

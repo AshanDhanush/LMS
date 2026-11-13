@@ -3,31 +3,10 @@
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  place-items: center;
-  padding: calc(var(--space-5) + var(--safe-top)) var(--space-4) calc(var(--space-5) + var(--safe-bottom));
+  grid-template-columns: 1fr 1fr;
   background:
     radial-gradient(ellipse at 12% 12%, var(--primary-soft), transparent 34rem),
     var(--bg);
-}
-.account-auth__shell {
-  width: min(100%, 1060px);
-  min-height: 620px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: var(--shadow-3);
-}
-.account-auth__shell--single {
-  width: min(100%, 520px);
-  min-height: 0;
-  grid-template-columns: 1fr;
-}
-.account-auth__shell--single .account-auth__mobile-brand {
-  display: inline-flex;
-  margin-bottom: var(--space-6);
 }
 .account-auth__welcome {
   display: flex;
@@ -218,29 +197,21 @@
 }
 .account-auth__resend-button:hover { color: var(--primary-hover); }
 @media (max-width: 599px) {
-  .account-auth { padding-inline: var(--space-3); }
-  .account-auth__shell { min-height: 0; display: block; border-radius: 18px; }
+  .account-auth {
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: calc(var(--space-4) + var(--safe-top)) var(--space-3) calc(var(--space-4) + var(--safe-bottom));
+  }
   .account-auth__welcome { display: none; }
-  .account-auth__form-panel { padding: var(--space-5); }
+  .account-auth__form-panel {
+    width: min(100%, 520px);
+    padding: var(--space-5);
+    border-radius: 18px;
+    box-shadow: var(--shadow-2);
+  }
   .account-auth__mobile-brand { display: inline-flex; margin-bottom: var(--space-6); }
   .account-auth__form-content h2 { font-size: var(--text-2xl); }
   .account-auth__footer { margin-top: var(--space-5); }
-}
-
-@media (min-width: 600px) {
-  .account-auth { padding-inline: var(--space-6); }
-}
-
-@media (min-width: 900px) {
-  .account-auth { padding: 0; }
-  .account-auth__shell {
-    width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
 }
 
 .account-auth__reset-content { max-width: 440px; }

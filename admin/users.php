@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../api/api_assignment_service.php';   // assessmentDeleteStoredFile()
 require_once __DIR__ . '/../api/data_cleanup.php';
+require_once __DIR__ . '/../includes/audit.php';
+require_once __DIR__ . '/../api/api_admin_course_service.php';   // adminCsrfToken() for the bulk form
 
 $user = currentUser();
 if ($user === null) {
@@ -152,13 +154,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $statusError = 'You cannot deactivate your own administrator account.';
     } else {
         try {
-            $findUser = db()->prepare('SELECT id FROM users WHERE id = :id');
+            $findUser = db()->prepare('SELECT id, name, email, status FROM users WHERE id = :id');
             $findUser->execute(['id' => $userId]);
-            if ($findUser->fetchColumn() === false) {
+            $target = $findUser->fetch();
+            if ($target === false) {
                 $statusError = 'The selected user could not be found.';
             } else {
                 $updateStatus = db()->prepare('UPDATE users SET status = :status WHERE id = :id');
                 $updateStatus->execute(['status' => $newStatus, 'id' => $userId]);
+                if ($target['status'] !== $newStatus) {
+                    auditLog(db(), $user, 'user.status', 'user', (int) $userId, ($newStatus === 'active' ? 'Activated' : 'Deactivated') . ' account of ' . $target['name'], ['email' => $target['email'], 'status_from' => $target['status'], 'status_to' => $newStatus]);
+                }
                 redirect('admin/users?status_updated=1');
             }
         } catch (Throwable $error) {
@@ -230,6 +236,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
             }
 
             $pdo->commit();
+
+            auditLog($pdo, $user, 'user.import', 'user', null, 'Imported ' . count($createdUsers) . ' user(s) from a CSV file',
+                ['count' => count($createdUsers), 'file' => (string) ($upload['name'] ?? ''), 'emails' => implode(', ', array_slice(array_column($createdUsers, 'email'), 0, 50))]);
 
             foreach ($createdUsers as $createdUser) {
                 if (!sendAccountCredentials(
@@ -307,6 +316,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                     'password_hash' => password_hash($password, PASSWORD_DEFAULT),
                     'role' => $formRole,
                 ]);
+                $newUserId = (int) db()->lastInsertId();
+                auditLog(db(), $user, 'user.create', 'user', $newUserId, 'Created ' . $formRole . ' account for ' . $formName, ['email' => $formEmail, 'username' => $username, 'role' => $formRole]);
                 $emailSent = sendAccountCredentials($formName, $formEmail, $username, $password);
                 redirect('admin/users?created=1' . ($emailSent ? '' : '&email_failed=1'));
             }
@@ -320,6 +331,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         } catch (Throwable $error) {
             error_log('Admin user creation failed: ' . $error->getMessage());
             $formError = 'The account could not be created. Please try again.';
+        }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_users') {
+    $bulkAction = is_string($_POST['bulk_action'] ?? null) ? $_POST['bulk_action'] : '';
+    $bulkIds = array_values(array_unique(array_filter(
+        array_map('intval', is_array($_POST['ids'] ?? null) ? $_POST['ids'] : []),
+        static fn(int $id): bool => $id > 0
+    )));
+
+    if (!adminCsrfValid((string) ($_POST['csrf_token'] ?? ''))) {
+        $statusError = 'Your session expired. Please try again.';
+    } elseif (!in_array($bulkAction, ['activate', 'deactivate', 'delete'], true)) {
+        $statusError = 'Choose what to do with the selected users.';
+    } elseif ($bulkIds === []) {
+        $statusError = 'Select at least one user first.';
+    } elseif (count($bulkIds) > 100) {
+        $statusError = 'Select up to 100 users at a time.';
+    } else {
+        try {
+            $bulkPdo = db();
+            // Never act on your own account (you could lock yourself out).
+            $skippedSelf = in_array((int) $user['id'], $bulkIds, true);
+            $bulkIds = array_values(array_diff($bulkIds, [(int) $user['id']]));
+            $done = 0;
+
+            if ($bulkIds !== []) {
+                $marks = implode(',', array_fill(0, count($bulkIds), '?'));
+                $select = $bulkPdo->prepare("SELECT id, name, email, role, status FROM users WHERE id IN ($marks)");
+                $select->execute($bulkIds);
+
+                foreach ($select->fetchAll() as $target) {
+                    if ($bulkAction === 'delete') {
+                        $files = dataCleanupUserFiles($bulkPdo, (int) $target['id']);
+                        if (dataCleanupDeleteUser($bulkPdo, (int) $target['id'])) {
+                            foreach ($files as $file) {
+                                assessmentDeleteStoredFile($file);
+                            }
+                            auditLog($bulkPdo, $user, 'user.delete', 'user', (int) $target['id'], 'Deleted ' . $target['role'] . ' account of ' . $target['name'] . ' (bulk)', ['email' => $target['email'], 'role' => $target['role']]);
+                            $done++;
+                        }
+                    } else {
+                        $newStatus = $bulkAction === 'activate' ? 'active' : 'inactive';
+                        if ($target['status'] !== $newStatus) {
+                            $bulkPdo->prepare('UPDATE users SET status = :status WHERE id = :id')->execute(['status' => $newStatus, 'id' => $target['id']]);
+                            auditLog($bulkPdo, $user, 'user.status', 'user', (int) $target['id'], ($newStatus === 'active' ? 'Activated' : 'Deactivated') . ' account of ' . $target['name'] . ' (bulk)', ['email' => $target['email'], 'status_from' => $target['status'], 'status_to' => $newStatus]);
+                            $done++;
+                        }
+                    }
+                }
+            }
+
+            adminCsrfRotate();
+            redirect('admin/users?bulk_done=' . $done . '&bulk_what=' . $bulkAction . ($skippedSelf ? '&bulk_self=1' : ''));
+        } catch (Throwable $error) {
+            error_log('Admin bulk user action failed: ' . $error->getMessage());
+            $statusError = 'The bulk action could not be completed. Some users may have been changed; reload and check.';
         }
     }
 }
@@ -351,9 +420,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $statusError = 'You cannot delete your own administrator account.';
     } else {
         try {
-            $findUser = db()->prepare('SELECT id FROM users WHERE id = :id');
+            $findUser = db()->prepare('SELECT id, name, email, role FROM users WHERE id = :id');
             $findUser->execute(['id' => $userId]);
-            if ($findUser->fetchColumn() === false) {
+            $target = $findUser->fetch();
+            if ($target === false) {
                 $statusError = 'The selected user could not be found.';
             } else {
                 // The user's rows, and the courses they teach, go together (no foreign keys do it for us).
@@ -363,6 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
                 foreach ($userFiles as $userFile) {
                     assessmentDeleteStoredFile($userFile);
                 }
+                auditLog($cleanupPdo, $user, 'user.delete', 'user', (int) $userId, 'Deleted ' . $target['role'] . ' account of ' . $target['name'], ['email' => $target['email'], 'role' => $target['role']]);
                 redirect('admin/users?deleted=1');
             }
         } catch (Throwable $error) {
@@ -373,6 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 }
 ?>
 <?php
+$bulkCsrfToken = adminCsrfToken();   // must be created before any HTML is sent (it starts the session)
 $adminPageTitle = 'Users | Learning Hub Admin';
 $adminActivePage = 'users';
 require __DIR__ . '/header.php';
@@ -390,6 +462,10 @@ require __DIR__ . '/header.php';
                 <?php endif; ?>
                 <?php if (isset($_GET['email_failed'])): ?>
                     <p class="admin-alert" role="alert">The account was created, but the credentials email could not be sent. Check the mail configuration and contact the user.</p>
+                <?php endif; ?>
+                <?php if (isset($_GET['bulk_done'])): ?>
+                    <?php $bulkWord = ['activate' => 'activated', 'deactivate' => 'deactivated', 'delete' => 'deleted'][$_GET['bulk_what'] ?? ''] ?? 'changed'; ?>
+                    <p class="admin-alert admin-alert--success" role="status"><?= (int) $_GET['bulk_done'] ?> user<?= (int) $_GET['bulk_done'] === 1 ? ' was' : 's were' ?> <?= h($bulkWord) ?>.<?= isset($_GET['bulk_self']) ? ' Your own account was skipped.' : '' ?></p>
                 <?php endif; ?>
                 <?php if (isset($_GET['status_updated'])): ?>
                     <p class="admin-alert admin-alert--success" role="status">The user status was updated.</p>
@@ -478,10 +554,23 @@ require __DIR__ . '/header.php';
                     <?php elseif (!$users): ?>
                         <p class="admin-empty"><?= $userSearch !== '' ? 'No users match that name.' : 'No users yet.' ?></p>
                     <?php else: ?>
+                        <form id="bulk-users-form" class="admin-bulk" method="post" action="" data-bulk-form>
+                            <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
+                            <input type="hidden" name="action" value="bulk_users">
+                            <label class="admin-sr-only" for="bulk-action">Action for the selected users</label>
+                            <select id="bulk-action" class="admin-status-select" name="bulk_action" data-bulk-action>
+                                <option value="activate">Activate selected</option>
+                                <option value="deactivate">Deactivate selected</option>
+                                <option value="delete">Delete selected</option>
+                            </select>
+                            <button class="admin-btn" type="submit" data-bulk-submit disabled>Apply</button>
+                            <span class="admin-card__note" data-bulk-count aria-live="polite">0 selected</span>
+                        </form>
                         <div class="admin-table-wrap">
                             <table class="admin-table">
                                 <thead>
                                     <tr>
+                                        <th scope="col"><input type="checkbox" data-select-all aria-label="Select all users in this list"></th>
                                         <th scope="col">User</th>
                                         <th scope="col">Role</th>
                                         <th scope="col">Status</th>
@@ -493,6 +582,10 @@ require __DIR__ . '/header.php';
                                 <tbody>
                                     <?php foreach ($users as $row): ?>
                                         <tr>
+                                            <td>
+                                                <input type="checkbox" form="bulk-users-form" name="ids[]" value="<?= (int) $row['id'] ?>" data-select-row
+                                                    aria-label="Select <?= h($row['name']) ?>"<?= (int) $row['id'] === (int) $user['id'] ? ' disabled title="You cannot select your own account"' : '' ?>>
+                                            </td>
                                             <td>
                                                 <span class="admin-person">
                                                     <span class="admin-person__avatar" aria-hidden="true"><?= h(initials($row['name'])) ?></span>

@@ -69,7 +69,7 @@ function adminCourseFilters(array $query): array
 
     return [
         'q'          => mb_substr(trim((string) ($query['q'] ?? '')), 0, 100, 'UTF-8'),
-        'status'     => in_array($status, ['all', 'published', 'draft'], true) ? $status : 'all',
+        'status'     => in_array($status, ['all', 'published', 'pending', 'draft'], true) ? $status : 'all',
         'category'   => $category !== '' ? $category : null,
         'instructor' => $instructor ?: null,
         'sort'       => isset(ADMIN_COURSE_SORTS[$sort]) ? $sort : 'newest',
@@ -264,7 +264,7 @@ function adminCourseValidate(PDO $pdo, array $post, array &$errors, ?int $curren
         }
     }
 
-    if (!in_array($values['status'], ['draft', 'published'], true)) {
+    if (!in_array($values['status'], ['draft', 'pending', 'published'], true)) {
         $errors[] = 'Choose Draft or Published.';
     } elseif ($values['status'] === 'published' && $lessonCount < 1) {
         $errors[] = 'Add at least one lesson before publishing this course.';

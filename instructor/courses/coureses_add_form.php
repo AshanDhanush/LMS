@@ -1,6 +1,14 @@
 ﻿<?php 
 
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/audit.php';
+
+$reviewOn = false;
+try {
+    $reviewOn = courseReviewReady(db());
+} catch (Throwable $error) {
+    $reviewOn = false;
+}
 
 $user = currentUser();
 
@@ -214,12 +222,13 @@ $firstName = explode(' ', trim((string) $user['name']))[0] ?? 'Instructor';
                             required>
 
                             <option value="draft">Save as draft</option>
-                            <option value="published">Publish course</option>
+                            <option value="published"><?= $reviewOn ? 'Submit for review' : 'Publish course' ?></option>
                         </select>
 
                         <small>
                             Draft courses remain unpublished. Published courses
                             become available according to your catalog rules.
+                            <?php if ($reviewOn): ?>A submitted course is checked by an admin before students can see it.<?php endif; ?>
                         </small>
                     </div>
 

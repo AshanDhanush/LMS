@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../api/api_assignment_service.php';   // assessmentDeleteStoredFile()
 require_once __DIR__ . '/../api/api_admin_course_service.php';
 
@@ -75,7 +76,8 @@ if ($pdo && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $createValues = $result['values'];
 
             if (!$formErrors && $result['clean'] !== null) {
-                adminCourseCreate($pdo, $result['clean']);
+                $newCourseId = adminCourseCreate($pdo, $result['clean']);
+                auditLog($pdo, $user, 'course.create', 'course', $newCourseId, 'Admin created course "' . $result['clean']['title'] . '" (draft)');
                 adminCsrfRotate();
                 redirect($listUrl(['created' => 1]));
                 exit;
@@ -91,6 +93,14 @@ if ($pdo && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                 if (!$formErrors && $result['clean'] !== null) {
                     adminCourseUpdate($pdo, (int) $course['id'], $result['clean']);
+                    $changes = [];
+                    foreach (['title', 'status', 'instructor_id', 'category_id'] as $field) {
+                        if ((string) ($course[$field] ?? '') !== (string) ($result['clean'][$field] ?? '')) {
+                            $changes[$field . '_from'] = (string) ($course[$field] ?? '');
+                            $changes[$field . '_to'] = (string) ($result['clean'][$field] ?? '');
+                        }
+                    }
+                    auditLog($pdo, $user, 'course.update', 'course', (int) $course['id'], 'Admin updated course "' . $course['title'] . '"', $changes);
                     adminCsrfRotate();
                     redirect($listUrl(['updated' => 1]));
                 exit;
@@ -106,13 +116,18 @@ if ($pdo && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if ($problem !== null) {
                     $pageError = $problem;
                 } else {
+                    auditLog($pdo, $user, $newStatus === 'published' ? 'course.publish' : 'course.unpublish', 'course', (int) $course['id'],
+                        ($newStatus === 'published' ? 'Published' : 'Moved to draft') . ' course "' . $course['title'] . '"', ['status_from' => (string) $course['status'], 'status_to' => $newStatus]);
                     adminCsrfRotate();
                     redirect($listUrl([$newStatus === 'published' ? 'published' : 'unpublished' => 1]));
                 exit;
                 }
             }
         } elseif ($action === 'delete') {
+            $doomed = $courseId ? adminCourseFind($pdo, $courseId) : null;
             if ($courseId && adminCourseDelete($pdo, $courseId)) {
+                auditLog($pdo, $user, 'course.delete', 'course', $courseId, 'Admin deleted course "' . (string) ($doomed['title'] ?? '#' . $courseId) . '"',
+                    $doomed ? ['status' => (string) $doomed['status'], 'instructor' => (string) ($doomed['instructor'] ?? ''), 'students' => (int) ($doomed['students'] ?? 0)] : []);
                 adminCsrfRotate();
                 redirect($listUrl(['deleted' => 1]));
                 exit;
@@ -261,6 +276,7 @@ require __DIR__ . '/header.php';
                                 <label for="edit-status">Status</label>
                                 <select id="edit-status" name="status">
                                     <option value="draft" <?= $editValues['status'] === 'draft' ? 'selected' : '' ?>>Draft</option>
+                                    <?php if ($editValues['status'] === 'pending'): ?><option value="pending" selected>Pending review</option><?php endif; ?>
                                     <option value="published" <?= $editValues['status'] === 'published' ? 'selected' : '' ?>>Published</option>
                                 </select>
                             </div>
@@ -339,6 +355,7 @@ require __DIR__ . '/header.php';
                             <select id="filter-status" name="status">
                                 <option value="all" <?= $filters['status'] === 'all' ? 'selected' : '' ?>>All</option>
                                 <option value="published" <?= $filters['status'] === 'published' ? 'selected' : '' ?>>Published</option>
+                                <option value="pending" <?= $filters['status'] === 'pending' ? 'selected' : '' ?>>Pending review</option>
                                 <option value="draft" <?= $filters['status'] === 'draft' ? 'selected' : '' ?>>Draft</option>
                             </select>
                         </div>
@@ -426,7 +443,8 @@ require __DIR__ . '/header.php';
                                                     aria-label="Status for <?= h($row['title']) ?>">
                                                     <option value="published" <?= $isPublished ? 'selected' : '' ?>
                                                         <?= !$isPublished && (int) $row['lessons'] < 1 ? 'disabled title="Add a lesson before publishing"' : '' ?>>Published</option>
-                                                    <option value="draft" <?= !$isPublished ? 'selected' : '' ?>>Draft</option>
+                                                    <?php if ($row['status'] === 'pending'): ?><option value="pending" selected disabled>Pending review</option><?php endif; ?>
+                                                    <option value="draft" <?= $row['status'] === 'draft' ? 'selected' : '' ?>>Draft</option>
                                                 </select>
                                             </form>
                                         </td>

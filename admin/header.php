@@ -14,6 +14,16 @@ $headerInitials = function_exists('initials')
     : userProfileInitials($headerName);
 $headerSearchValue = isset($userSearch) ? (string) $userSearch : '';
 $adminActivePage = $adminActivePage ?? '';
+$pendingReviews = 0;
+try {
+    require_once dirname(__DIR__) . '/includes/audit.php';
+    $reviewPdo = db();
+    if (courseReviewReady($reviewPdo)) {
+        $pendingReviews = (int) $reviewPdo->query("SELECT COUNT(*) FROM courses WHERE status = 'pending'")->fetchColumn();
+    }
+} catch (Throwable $error) {
+    $pendingReviews = 0;
+}
 $adminPageTitle = $adminPageTitle ?? 'Learning Hub Admin';
 ?>
 <!DOCTYPE html>
@@ -75,6 +85,23 @@ $adminPageTitle = $adminPageTitle ?? 'Learning Hub Admin';
                 <a class="admin-sidebar__link<?= $adminActivePage === 'courses' ? ' admin-sidebar__link--active' : '' ?>" href="<?= h(url('admin/courses')) ?>"<?= $adminActivePage === 'courses' ? ' aria-current="page"' : '' ?>>
                     <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 7h6"/></svg>
                     <span>Courses</span>
+                </a>
+                <a class="admin-sidebar__link<?= $adminActivePage === 'reviews' ? ' admin-sidebar__link--active' : '' ?>" href="<?= h(url('admin/reviews')) ?>"<?= $adminActivePage === 'reviews' ? ' aria-current="page"' : '' ?>>
+                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                    <span>Reviews</span>
+                    <?php if ($pendingReviews > 0): ?><span class="admin-sidebar__badge" aria-label="<?= $pendingReviews ?> waiting"><?= $pendingReviews ?></span><?php endif; ?>
+                </a>
+                <a class="admin-sidebar__link<?= $adminActivePage === 'categories' ? ' admin-sidebar__link--active' : '' ?>" href="<?= h(url('admin/categories')) ?>"<?= $adminActivePage === 'categories' ? ' aria-current="page"' : '' ?>>
+                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+                    <span>Categories</span>
+                </a>
+                <a class="admin-sidebar__link<?= $adminActivePage === 'reports' ? ' admin-sidebar__link--active' : '' ?>" href="<?= h(url('admin/reports')) ?>"<?= $adminActivePage === 'reports' ? ' aria-current="page"' : '' ?>>
+                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+                    <span>Reports</span>
+                </a>
+                <a class="admin-sidebar__link<?= $adminActivePage === 'audit' ? ' admin-sidebar__link--active' : '' ?>" href="<?= h(url('admin/audit-log')) ?>"<?= $adminActivePage === 'audit' ? ' aria-current="page"' : '' ?>>
+                    <svg class="admin-sidebar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+                    <span>Audit log</span>
                 </a>
                 <form action="<?= h(url('api/auth_api.php?action=logout')) ?>" method="post">
                     <button class="admin-sidebar__link admin-sidebar__logout" type="submit">

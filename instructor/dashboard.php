@@ -372,6 +372,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
                                     <select class="ins-input" id="courseStatus">
                                         <option value="">All statuses</option>
                                         <option value="published">Published</option>
+                                        <option value="pending">Pending review</option>
                                         <option value="draft">Draft</option>
                                     </select>
                                 </div>
@@ -401,7 +402,7 @@ $firstName = explode(' ', trim($user['name']))[0] ?? 'there';
                                                         <span class="ins-course__title"><?= h($course['title']) ?></span>
                                                         <span class="ins-course__sub">
                                                             <?= $lessons ?> lesson<?= $lessons === 1 ? '' : 's' ?>
-                                                            <?php if ($course['status'] === 'draft'): ?><span class="ins-chip ins-chip--muted">Draft</span><?php endif; ?>
+                                                            <?php if ($course['status'] === 'draft'): ?><span class="ins-chip ins-chip--muted">Draft</span><?php elseif ($course['status'] === 'pending'): ?><span class="ins-chip ins-chip--warning">Pending review</span><?php endif; ?>
                                                         </span>
                                                     </span>
                                                 </span>
