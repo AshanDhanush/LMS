@@ -304,7 +304,7 @@ img.ins-user__avatar {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 42px;
   padding: 0 16px;
   border: 1px solid var(--n-border);
   border-radius: var(--n-radius-base);
@@ -316,7 +316,10 @@ img.ins-user__avatar {
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: background .18s ease, border-color .18s ease;
+  user-select: none;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease),
+              background-color .18s var(--ease), border-color .18s var(--ease),
+              color .18s var(--ease);
 }
 
 .ins-btn svg {
@@ -326,39 +329,51 @@ img.ins-user__avatar {
 }
 
 .ins-btn--small {
-  min-height: 34px;
-  padding-inline: 10px;
-  font-size: .8rem;
+  min-height: 36px;
+  padding-inline: 12px;
+  font-size: .8125rem;
 }
 
 a.ins-btn:hover,
 button.ins-btn:hover {
   background: var(--n-surface-2);
+  transform: translateY(-1px);
+}
+
+.ins-btn:active {
+  transform: translateY(1px);
 }
 
 .ins-btn--primary {
   background: var(--n-primary);
   border-color: var(--n-primary);
   color: var(--on-primary);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
 
 .ins-btn--danger {
   border-color: var(--n-danger);
+  background: transparent;
   color: var(--n-danger);
 }
 
 button.ins-btn--danger:hover {
   background: var(--n-danger-soft);
+  color: var(--n-danger);
+  border-color: var(--n-danger);
 }
 
 a.ins-btn--primary:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
+  color: var(--on-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
 }
 
 .ins-btn:disabled {
-  opacity: .6;
-  cursor: wait;
+  opacity: .55;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ---------- Page layout ---------- */
@@ -3356,4 +3371,51 @@ a.ins-chip {
 .ins-review-pages {
   justify-content: center;
   border-bottom: 0;
+}
+
+/* Touch & mobile ergonomics */
+@media (max-width: 768px), (pointer: coarse) {
+  .ins-btn,
+  .ins-btn--small,
+  .ins-menu-toggle {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  .ins-input,
+  .ins-lesson-field input:not([type="checkbox"]):not([type="radio"]),
+  .ins-lesson-field select,
+  .ins-lesson-field textarea,
+  .ins-course-form__field input:not([type="checkbox"]):not([type="radio"]),
+  .ins-course-form__field select,
+  .ins-course-form__field textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 599px) {
+  .ins-card {
+    padding: clamp(12px, 3.5vw, 16px);
+  }
+  .ins-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ins-course-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .ins-grid-card__footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ins-grid-card__footer .ins-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+  .ins-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
 }

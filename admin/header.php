@@ -65,7 +65,7 @@ $adminPageTitle = $adminPageTitle ?? 'Learning Hub Admin';
                 <?php endif; ?>
                 <span class="admin-user__name"><?= h($headerName) ?></span>
             </a>
-            <form action="<?= h(url('api/auth_api.php?action=logout')) ?>" method="post">
+            <form class="admin-topbar__signout" action="<?= h(url('api/auth_api.php?action=logout')) ?>" method="post">
                 <button class="admin-btn" type="submit">Sign out</button>
             </form>
         </div>

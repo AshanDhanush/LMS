@@ -1,66 +1,242 @@
 /* Student course catalog: only what theme.css does not already provide.
    Mobile first; matches the mobile, tablet and desktop frames of the design. */
 
-.catalog-head { margin: var(--space-3) 0 var(--space-4); }
-.catalog-head h1 { margin: 0; }
-.catalog-head p { margin: var(--space-1) 0 0; }
-
-.catalog-toolbar { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
-.catalog-toolbar .form-group { margin: 0; }
-
-.catalog-categories { margin: var(--space-4) 0 var(--space-3); }
-.catalog-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
-.catalog-chip {
-  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
-  border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
-  font: inherit; font-size: var(--text-sm); cursor: pointer;
+.catalog-head {
+  margin: var(--space-3) 0 var(--space-4);
 }
-.catalog-chip:hover { background: var(--surface-2); }
-.catalog-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.catalog-head h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3.5vw, var(--text-3xl));
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.catalog-head p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
 
-.catalog-filters-toggle { margin-bottom: var(--space-3); }
+.catalog-toolbar {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+.catalog-toolbar .form-group {
+  margin: 0;
+}
 
-.catalog-layout { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+.catalog-categories {
+  margin: var(--space-4) 0 var(--space-3);
+}
+.catalog-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.catalog-chips::-webkit-scrollbar {
+  display: none;
+}
+.catalog-chip {
+  flex: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-full);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.catalog-chip:hover {
+  background: var(--surface-2);
+  border-color: var(--primary);
+}
+.catalog-chip[aria-pressed="true"] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.catalog-filters-toggle {
+  margin-bottom: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+}
+@media (min-width: 640px) {
+  .catalog-filters-toggle {
+    width: auto;
+  }
+}
+
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(var(--space-3), 2vw, var(--space-5));
+}
 
 /* Filters: collapsed on small screens, a side column on desktop */
-.catalog-filters { display: none; align-self: start; }
-.catalog-filters.is-open { display: block; }
-.catalog-filter { border: 0; margin: var(--space-3) 0; padding: 0; }
-.catalog-filter legend { font-size: var(--text-sm); font-weight: 600; padding: 0; margin-bottom: var(--space-1); }
-.catalog-filter label { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; font-size: var(--text-sm); cursor: pointer; }
+.catalog-filters {
+  display: none;
+  align-self: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+.catalog-filters.is-open {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+.catalog-filter {
+  border: 0;
+  margin: var(--space-3) 0;
+  padding: 0;
+}
+.catalog-filter:first-child {
+  margin-top: 0;
+}
+.catalog-filter legend {
+  font-size: var(--text-sm);
+  font-weight: 650;
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+.catalog-filter label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  min-height: 36px;
+}
 
-.catalog-count { margin: 0 0 var(--space-3); font-size: var(--text-sm); }
+.catalog-count {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+}
 
-.catalog-grid { display: grid; gap: var(--space-4); grid-template-columns: 1fr; }
-.catalog-grid > .dash-empty { grid-column: 1 / -1; }
+.catalog-grid {
+  display: grid;
+  gap: clamp(var(--space-3), 2vw, var(--space-4));
+  grid-template-columns: 1fr;
+}
+.catalog-grid > .dash-empty {
+  grid-column: 1 / -1;
+}
 
-.catalog-card__facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--text-xs); }
-.catalog-rating { display: inline-flex; align-items: center; gap: var(--space-1); }
-.catalog-rating__star { color: var(--star, #e8a317); }
-.catalog-card__footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.catalog-card__footer .btn-primary { margin-left: auto; }
+.catalog-card__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.catalog-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+.catalog-rating__star {
+  color: var(--star, #e8a317);
+}
+.catalog-card__footer {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.catalog-card__footer .btn {
+  min-height: 40px;
+}
+.catalog-card__footer .btn-primary {
+  margin-left: auto;
+}
 
 /* Tablet: two columns of cards */
 @media (min-width: 640px) {
-  .catalog-toolbar { grid-template-columns: 1fr 220px; align-items: end; }
-  .catalog-grid { grid-template-columns: repeat(2, 1fr); }
+  .catalog-toolbar {
+    grid-template-columns: 1fr 220px;
+    align-items: end;
+  }
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Desktop: filters beside a three-column grid */
 @media (min-width: 1024px) {
-  .catalog-filters-toggle { display: none; }
-  .catalog-layout { grid-template-columns: 200px 1fr; gap: var(--space-5); }
-  .catalog-filters { display: block; position: sticky; top: calc(var(--topbar-h) + var(--space-3)); }
-  .catalog-grid { grid-template-columns: repeat(3, 1fr); }
+  .catalog-filters-toggle {
+    display: none;
+  }
+  .catalog-layout {
+    grid-template-columns: 220px 1fr;
+    gap: var(--space-5);
+  }
+  .catalog-filters {
+    display: block;
+    position: sticky;
+    top: calc(var(--topbar-h) + var(--space-3));
+  }
+  .catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .catalog-grid { grid-template-columns: repeat(2, 1fr); }
+  .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* My courses page */
-.catalog-head--row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
-.my-tabs { margin: var(--space-4) 0 var(--space-3); }
-.my-card .progress { margin-top: var(--space-1); }
-.my-card__progress { margin-top: auto; }
-.my-card__footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-2); }
-@media (min-width: 1024px) { .my-grid { grid-template-columns: repeat(3, 1fr); } }
+.catalog-head--row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.my-tabs {
+  margin: var(--space-4) 0 var(--space-3);
+}
+.my-card .progress {
+  margin-top: var(--space-1);
+}
+.my-card__progress {
+  margin-top: auto;
+}
+.my-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+@media (min-width: 1024px) {
+  .my-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

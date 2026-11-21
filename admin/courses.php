@@ -462,6 +462,7 @@ require __DIR__ . '/header.php';
                                         <td>
                                             <div class="admin-actions">
                                                 <a class="admin-btn admin-edit-btn" href="<?= h(url('admin/courses/edit/' . (int) $row['id'])) ?>">Edit</a>
+                                                <a class="admin-btn" href="<?= h(url('admin/enrollments?course_id=' . (int) $row['id'])) ?>" aria-label="Manage students of <?= h($row['title']) ?>">Students</a>
 
                                                 <form method="post" action="" class="admin-delete-form"
                                                       data-confirm="Delete the course &quot;<?= h($row['title']) ?>&quot;? This permanently deletes its <?= (int) $row['lessons'] ?> lesson(s), <?= (int) $row['students'] ?> enrolment(s) with the students' progress, and all its assignments, submissions and quizzes. This cannot be undone.">
@@ -502,20 +503,5 @@ require __DIR__ . '/header.php';
 
     <footer class="admin-footer"><span>© <?= date('Y') ?> Learning Hub</span></footer>
     <script src="<?= h(url('assests/dashboard.js')) ?>" defer></script>
-    <script>
-        // Ask before a destructive action: any form with a data-confirm message.
-        document.querySelectorAll('form[data-confirm]').forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!window.confirm(form.dataset.confirm)) {
-                    event.preventDefault();
-                }
-            });
-        });
-        document.querySelectorAll('.admin-status-select').forEach(function (select) {
-            select.addEventListener('change', function () {
-                select.form.requestSubmit();
-            });
-        });
-    </script>
 </body>
 </html>

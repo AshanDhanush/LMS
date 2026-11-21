@@ -33,10 +33,7 @@ function categoryNameProblem(string $name): ?string
     if ($name === '') {
         return 'Enter a category name.';
     }
-    if (!mb_check_encoding($name, 'UTF-8') || mb_strlen($name, 'UTF-8') > 100) {
-        return 'The category name can be up to 100 characters.';
-    }
-    return null;
+    return plainTextProblem($name, 'The category name', 100);
 }
 
 $pageError  = '';
@@ -204,7 +201,7 @@ require __DIR__ . '/header.php';
                                         <td><?= (int) $row['courses'] ?> <span class="admin-person__email">(<?= (int) $row['published'] ?> published)</span></td>
                                         <td>
                                             <form method="post" action="" class="admin-delete-form"
-                                                  onsubmit="return confirm('Delete the category <?= h(addslashes($row['name'])) ?>? Its <?= (int) $row['courses'] ?> course(s) will become uncategorised.')">
+                                                  data-confirm="Delete the category &quot;<?= h($row['name']) ?>&quot;? Its <?= (int) $row['courses'] ?> course(s) will become uncategorised.">
                                                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="category_id" value="<?= (int) $row['id'] ?>">

@@ -117,9 +117,9 @@
 .account-auth__password-toggle {
   position: absolute;
   top: 50%;
-  right: var(--space-2);
-  width: 2.25rem;
-  height: 2.25rem;
+  right: 4px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -129,6 +129,7 @@
   color: var(--text-muted);
   cursor: pointer;
   transform: translateY(-50%);
+  touch-action: manipulation;
 }
 .account-auth__password-toggle:hover { color: var(--text); }
 .account-auth__password-toggle:focus-visible {
@@ -205,13 +206,14 @@
   .account-auth__welcome { display: none; }
   .account-auth__form-panel {
     width: min(100%, 520px);
-    padding: var(--space-5);
-    border-radius: 18px;
+    padding: clamp(1.25rem, 4vw, 2.25rem);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
     box-shadow: var(--shadow-2);
   }
-  .account-auth__mobile-brand { display: inline-flex; margin-bottom: var(--space-6); }
-  .account-auth__form-content h2 { font-size: var(--text-2xl); }
-  .account-auth__footer { margin-top: var(--space-5); }
+  .account-auth__mobile-brand { display: inline-flex; margin-bottom: var(--space-5); }
+  .account-auth__form-content h2 { font-size: clamp(1.4rem, 4vw, var(--text-2xl)); }
+  .account-auth__footer { margin-top: var(--space-4); }
 }
 
 .account-auth__reset-content { max-width: 440px; }

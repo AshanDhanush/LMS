@@ -70,9 +70,19 @@ if (!defined('BASE_URL')) {
    Helpers for the login
    ========================================================================== */
 
-/** Site address of a path: url('admin/dashboard') */
+/**
+ * Site address of a path: url('admin/dashboard')
+ * Always a path on THIS site. Control characters and backslashes are removed, and anything that
+ * starts with "scheme:" (https://evil.com, javascript:...) is replaced by the site root, so a value
+ * taken from a request can never turn a redirect into a link to another website.
+ */
 function url(string $path = ''): string
 {
+    $path = (string) preg_replace('/[\x00-\x1F\x7F\\\\]/', '', $path);
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $path) === 1) {
+        $path = '';
+    }
+
     return BASE_URL . '/' . ltrim($path, '/');
 }
 
@@ -298,6 +308,9 @@ function sendMail(string $to, string $subject, string $html): bool
     }
 }
 
+
+/* Security headers, same-origin check, validation and CSV helpers (runs sendSecurityHeaders() once) */
+require_once __DIR__ . '/security.php';
 
 /* Database connection (includes/db.php), so one require of config.php is enough on a page */
 require_once __DIR__ . '/db.php';

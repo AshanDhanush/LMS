@@ -38,9 +38,10 @@ function adminCsrfToken(): string
     return (string) $_SESSION['admin_csrf'];
 }
 
+/** A POST is accepted only from our own website AND with the secret token from the form. */
 function adminCsrfValid(string $posted): bool
 {
-    return $posted !== '' && hash_equals(adminCsrfToken(), $posted);
+    return requestIsSameOrigin() && $posted !== '' && hash_equals(adminCsrfToken(), $posted);
 }
 
 function adminCsrfRotate(): void
@@ -228,9 +229,8 @@ function adminCourseValidate(PDO $pdo, array $post, array &$errors, ?int $curren
         'status'        => $isNew ? 'draft' : (string) ($post['status'] ?? 'draft'),
     ];
 
-    $length = mb_strlen($values['title'], 'UTF-8');
-    if ($length < 1 || $length > 190) {
-        $errors[] = 'Course title is required and must be 190 characters or fewer.';
+    if (($problem = plainTextProblem($values['title'], 'Course title', 190)) !== null) {
+        $errors[] = $problem;
     }
     if (mb_strlen($values['description'], 'UTF-8') > 5000) {
         $errors[] = 'Description must be 5000 characters or fewer.';

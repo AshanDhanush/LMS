@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/notifications.php';
+require_once __DIR__ . '/../includes/capacity.php';
 
 const CATALOG_PER_PAGE = 9;
 
@@ -96,12 +97,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         catalog_json(404, ['status' => 'error', 'message' => 'That course is not available.']);
     }
 
-    // The unique key (user_id, course_id) makes this safe to repeat.
-    $stmt = $pdo->prepare('INSERT IGNORE INTO enrollments (user_id, course_id) VALUES (:user, :course)');
-    $stmt->execute([':user' => $userId, ':course' => $courseId]);
+    // One function enrols a student and respects the course's seat limit (see includes/capacity.php).
+    $outcome = courseEnrol($pdo, (int) $courseId, $userId);
+    if ($outcome === 'full') {
+        catalog_json(409, ['status' => 'error', 'message' => 'This course is full. No seats are left right now.']);
+    }
+    if ($outcome === 'unavailable') {
+        catalog_json(404, ['status' => 'error', 'message' => 'That course is not available.']);
+    }
 
     // First time only: tell the instructor a new student joined (never blocks enrolling).
-    if ($stmt->rowCount() === 1) {
+    if ($outcome === 'enrolled') {
         notify(
             $pdo, (int) $enrolCourse['instructor_id'], 'enrollment',
             (string) $user['name'] . ' enrolled in ' . (string) $enrolCourse['title'],

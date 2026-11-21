@@ -44,7 +44,7 @@
 .profile-card,
 .profile-section {
   min-width: 0;
-  padding: var(--space-5);
+  padding: clamp(1rem, 3vw, var(--space-5));
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -461,14 +461,42 @@
   margin-inline: auto;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 599px) {
   .profile-head {
     grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-3);
   }
-
   .profile-head__points {
     justify-items: start;
   }
+  .profile-avatar-form__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .profile-avatar-form__controls .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+  .profile-section .form-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .profile-section .form-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+  .profile-side-column .badge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
-  .profile-side-column .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 420px) {
+  .profile-head {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+  .profile-head__points {
+    justify-items: center;
+  }
 }

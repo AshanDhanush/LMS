@@ -97,6 +97,9 @@ function readUserImportCsv(string $path): array
             if ($firstName === '' || $lastName === '' || mb_strlen($name, 'UTF-8') > 100) {
                 throw new RuntimeException('CSV row ' . $csvRow . ' must contain first and last names (up to 100 characters total).');
             }
+            if (plainTextProblem($name, 'The name', 100) !== null) {
+                throw new RuntimeException('CSV row ' . $csvRow . ' has a name with characters that are not allowed (such as < or >).');
+            }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
                 throw new RuntimeException('CSV row ' . $csvRow . ' does not contain a valid email address.');
             }
@@ -142,7 +145,20 @@ $formRole = 'student';
 $usersError = false;
 $users = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_status') {
+/* Every change goes through ONE gate: the secret form token must match and the request must come from this site. */
+$postAction = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postAction = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    if ($_POST === [] && $_FILES === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $importError = 'That upload is too large. A CSV file can be at most 2 MB.';
+        $postAction = '';
+    } elseif (!adminCsrfValid((string) ($_POST['csrf_token'] ?? ''))) {
+        $statusError = 'Your session expired or the request could not be verified. Reload the page and try again.';
+        $postAction = '';
+    }
+}
+
+if ($postAction === 'update_status') {
     $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
     $newStatus = is_string($_POST['status'] ?? null) ? $_POST['status'] : '';
 
@@ -174,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_csv') {
+if ($postAction === 'import_csv') {
     $upload = $_FILES['users_csv'] ?? null;
     if (!is_array($upload) || !isset($upload['error'], $upload['tmp_name'])) {
         $importError = 'Choose a CSV file to upload.';
@@ -273,19 +289,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'impor
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_user') {
+if ($postAction === 'create_user') {
     $formFirstName = trim(is_string($_POST['first_name'] ?? null) ? $_POST['first_name'] : '');
     $formLastName = trim(is_string($_POST['last_name'] ?? null) ? $_POST['last_name'] : '');
     $formEmail = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
     $formRole = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
     $formName = trim($formFirstName . ' ' . $formLastName);
 
-    if ($formFirstName === '' || mb_strlen($formFirstName, 'UTF-8') > 100) {
-        $firstNameError = 'Enter a first name of up to 100 characters.';
-    } elseif ($formLastName === '' || mb_strlen($formLastName, 'UTF-8') > 100) {
-        $lastNameError = 'Enter a last name of up to 100 characters.';
-    } elseif (mb_strlen($formName, 'UTF-8') > 100) {
-        $lastNameError = 'The full name must be no longer than 100 characters.';
+    if (($problem = plainTextProblem($formFirstName, 'First name', 100)) !== null) {
+        $firstNameError = $problem;
+    } elseif (($problem = plainTextProblem($formLastName, 'Last name', 100)) !== null) {
+        $lastNameError = $problem;
+    } elseif (($problem = plainTextProblem($formName, 'The full name', 100)) !== null) {
+        $lastNameError = $problem;
     } elseif (!filter_var($formEmail, FILTER_VALIDATE_EMAIL) || strlen($formEmail) > 190) {
         $emailError = 'Enter a valid email address.';
     } elseif (!in_array($formRole, ['student', 'instructor', 'admin'], true)) {
@@ -335,16 +351,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_users') {
+if ($postAction === 'bulk_users') {
     $bulkAction = is_string($_POST['bulk_action'] ?? null) ? $_POST['bulk_action'] : '';
     $bulkIds = array_values(array_unique(array_filter(
         array_map('intval', is_array($_POST['ids'] ?? null) ? $_POST['ids'] : []),
         static fn(int $id): bool => $id > 0
     )));
 
-    if (!adminCsrfValid((string) ($_POST['csrf_token'] ?? ''))) {
-        $statusError = 'Your session expired. Please try again.';
-    } elseif (!in_array($bulkAction, ['activate', 'deactivate', 'delete'], true)) {
+    if (!in_array($bulkAction, ['activate', 'deactivate', 'delete'], true)) {
         $statusError = 'Choose what to do with the selected users.';
     } elseif ($bulkIds === []) {
         $statusError = 'Select at least one user first.';
@@ -396,22 +410,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_
 $userSearch = trim(is_string($_GET['q'] ?? null) ? $_GET['q'] : '');
 $userSearch = mb_substr($userSearch, 0, 100, 'UTF-8');
 
+/* Filters and sorting come from the address bar. Only the words in these lists are ever used in the query. */
+const ADMIN_USER_SORTS = ['name' => 'name', 'email' => 'email', 'role' => 'role', 'status' => 'status', 'joined' => 'created_at'];
+$filterRole   = in_array($_GET['role'] ?? '', ['student', 'instructor', 'admin'], true) ? (string) $_GET['role'] : '';
+$filterStatus = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? (string) $_GET['status'] : '';
+$sortKey      = is_string($_GET['sort'] ?? null) && isset(ADMIN_USER_SORTS[$_GET['sort']]) ? $_GET['sort'] : 'joined';
+$sortDir      = ($_GET['dir'] ?? '') === 'asc' ? 'asc' : 'desc';
+$usersFiltered = $userSearch !== '' || $filterRole !== '' || $filterStatus !== '';
+
+/** Address of this page with the current filters and sorting, plus any changes in $over. */
+$usersUrl = static function (array $over = []) use ($userSearch, $filterRole, $filterStatus, $sortKey, $sortDir): string {
+    $query = array_filter(array_merge([
+        'q' => $userSearch, 'role' => $filterRole, 'status' => $filterStatus,
+        'sort' => $sortKey !== 'joined' || $sortDir !== 'desc' ? $sortKey : null,
+        'dir'  => $sortKey !== 'joined' || $sortDir !== 'desc' ? $sortDir : null,
+    ], $over), static fn($value): bool => $value !== null && $value !== '');
+
+    return url('admin/users' . ($query ? '?' . http_build_query($query) : ''));
+};
+
 try {
-    $userQuery = 'SELECT id, name, username, email, role, status, created_at FROM users';
+    $where = [];
+    $params = [];
     if ($userSearch !== '') {
-        $userQuery .= ' WHERE name LIKE :name OR email LIKE :email';
+        $where[] = '(name LIKE :name OR email LIKE :email OR username LIKE :username)';
+        $searchTerm = '%' . likeEscape($userSearch) . '%';
+        $params += ['name' => $searchTerm, 'email' => $searchTerm, 'username' => $searchTerm];
     }
-    $userQuery .= ' ORDER BY created_at DESC, id DESC LIMIT 100';
+    if ($filterRole !== '') {
+        $where[] = 'role = :role';
+        $params['role'] = $filterRole;
+    }
+    if ($filterStatus !== '') {
+        $where[] = 'status = :status';
+        $params['status'] = $filterStatus;
+    }
+
+    $column = ADMIN_USER_SORTS[$sortKey];
+    $direction = $sortDir === 'asc' ? 'ASC' : 'DESC';
+    $userQuery = 'SELECT id, name, username, email, role, status, created_at FROM users'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+        . " ORDER BY $column $direction, id $direction LIMIT 100";
     $loadUsers = db()->prepare($userQuery);
-    $searchTerm = '%' . $userSearch . '%';
-    $loadUsers->execute($userSearch !== '' ? ['name' => $searchTerm, 'email' => $searchTerm] : []);
+    $loadUsers->execute($params);
     $users = $loadUsers->fetchAll();
 } catch (Throwable $error) {
     error_log('Admin users page failed to load: ' . $error->getMessage());
     $usersError = true;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_user') {
+if ($postAction === 'delete_user') {
     $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
 
     if ($userId === false || $userId === null || $userId < 1) {
@@ -494,17 +542,18 @@ require __DIR__ . '/header.php';
                         <p class="admin-alert" role="alert"><?= h($formError) ?></p>
                     <?php endif; ?>
                     <form class="admin-user-form" method="post">
+                        <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
                         <input type="hidden" name="action" value="create_user">
                         <div class="admin-user-form__field">
                             <label for="first-name">First name</label>
-                            <input id="first-name" name="first_name" type="text" maxlength="100" autocomplete="given-name" value="<?= h($formFirstName) ?>" required>
+                            <input id="first-name" name="first_name" type="text" maxlength="100" autocomplete="given-name" pattern="[^&lt;&gt;]*" title="Letters, numbers and punctuation. The characters &lt; and &gt; are not allowed." value="<?= h($formFirstName) ?>" required>
                             <?php if ($firstNameError !== ''): ?>
                                 <p class="admin-user-form__field-error" role="alert"><?= h($firstNameError) ?></p>
                             <?php endif; ?>
                         </div>
                         <div class="admin-user-form__field">
                             <label for="last-name">Last name</label>
-                            <input id="last-name" name="last_name" type="text" maxlength="100" autocomplete="family-name" value="<?= h($formLastName) ?>" required>
+                            <input id="last-name" name="last_name" type="text" maxlength="100" autocomplete="family-name" pattern="[^&lt;&gt;]*" title="Letters, numbers and punctuation. The characters &lt; and &gt; are not allowed." value="<?= h($formLastName) ?>" required>
                             <?php if ($lastNameError !== ''): ?>
                                 <p class="admin-user-form__field-error" role="alert"><?= h($lastNameError) ?></p>
                             <?php endif; ?>
@@ -534,6 +583,7 @@ require __DIR__ . '/header.php';
                     </div>
                     <p>Upload a CSV with these headings: <strong>First name, Last name, email, role</strong>. Roles must be student, instructor, or admin. A username and temporary 8-character password will be generated for each user and emailed to them.</p>
                     <form class="admin-user-form" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
                         <input type="hidden" name="action" value="import_csv">
                         <input type="hidden" name="MAX_FILE_SIZE" value="2097152">
                         <div class="admin-user-form__field">
@@ -546,13 +596,46 @@ require __DIR__ . '/header.php';
 
                 <section class="admin-card admin-users-list" aria-labelledby="users-list-title">
                     <div class="admin-card__head">
-                        <h2 id="users-list-title"><?= $userSearch !== '' ? 'Search results' : 'Existing users' ?></h2>
-                        <span class="admin-card__note"><?= $userSearch !== '' ? 'Matches for "' . h($userSearch) . '" (up to 100)' : 'Newest 100' ?></span>
+                        <h2 id="users-list-title"><?= $usersFiltered ? 'Matching users' : 'Existing users' ?></h2>
+                        <span class="admin-card__note"><?= $usersFiltered ? count($users) . ' found (up to 100)' : 'Up to 100 shown' ?></span>
                     </div>
+                    <form class="admin-filter-form" method="get" action="<?= h(url('admin/users')) ?>">
+                        <div class="admin-user-form__field">
+                            <label for="filter-users-q">Search</label>
+                            <input id="filter-users-q" name="q" type="search" maxlength="100" value="<?= h($userSearch) ?>" placeholder="Name, email or username">
+                        </div>
+                        <div class="admin-user-form__field">
+                            <label for="filter-users-role">Role</label>
+                            <select id="filter-users-role" name="role">
+                                <option value="">All roles</option>
+                                <?php foreach (['student' => 'Student', 'instructor' => 'Instructor', 'admin' => 'Admin'] as $value => $label): ?>
+                                    <option value="<?= h($value) ?>" <?= $filterRole === $value ? 'selected' : '' ?>><?= h($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="admin-user-form__field">
+                            <label for="filter-users-status">Status</label>
+                            <select id="filter-users-status" name="status">
+                                <option value="">Any status</option>
+                                <option value="active" <?= $filterStatus === 'active' ? 'selected' : '' ?>>Active</option>
+                                <option value="inactive" <?= $filterStatus === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                            </select>
+                        </div>
+                        <?php if ($sortKey !== 'joined' || $sortDir !== 'desc'): ?>
+                            <input type="hidden" name="sort" value="<?= h($sortKey) ?>">
+                            <input type="hidden" name="dir" value="<?= h($sortDir) ?>">
+                        <?php endif; ?>
+                        <div class="admin-filter-form__actions">
+                            <button class="admin-btn admin-btn--primary admin-btn--inline" type="submit"><span>Apply</span></button>
+                            <?php if ($usersFiltered): ?>
+                                <a class="admin-btn" href="<?= h(url('admin/users')) ?>">Clear</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
                     <?php if ($usersError): ?>
                         <p class="admin-alert" role="alert">Users could not be loaded. Please reload the page.</p>
                     <?php elseif (!$users): ?>
-                        <p class="admin-empty"><?= $userSearch !== '' ? 'No users match that name.' : 'No users yet.' ?></p>
+                        <p class="admin-empty"><?= $usersFiltered ? 'No users match these filters.' : 'No users yet.' ?></p>
                     <?php else: ?>
                         <form id="bulk-users-form" class="admin-bulk" method="post" action="" data-bulk-form>
                             <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
@@ -570,13 +653,19 @@ require __DIR__ . '/header.php';
                             <table class="admin-table">
                                 <thead>
                                     <tr>
-                                        <th scope="col"><input type="checkbox" data-select-all aria-label="Select all users in this list"></th>
-                                        <th scope="col">User</th>
-                                        <th scope="col">Role</th>
-                                        <th scope="col">Status</th>
-                                        <th scope="col">Joined</th>
+                                        <th scope="col"><input type="checkbox" data-select-all data-bulk-for="bulk-users-form" aria-label="Select all users in this list"></th>
+                                        <?php
+                                        $sortHeader = static function (string $key, string $label) use ($sortKey, $sortDir, $usersUrl): string {
+                                            $active = $sortKey === $key;
+                                            $next = $active && $sortDir === 'asc' ? 'desc' : 'asc';
+                                            $arrow = $active ? ($sortDir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+                                            return '<th scope="col" aria-sort="' . ($active ? ($sortDir === 'asc' ? 'ascending' : 'descending') : 'none') . '">'
+                                                . '<a class="admin-sort" href="' . h($usersUrl(['sort' => $key, 'dir' => $next])) . '" title="Sort by ' . h(strtolower($label)) . ' (' . ($next === 'asc' ? 'A to Z' : 'Z to A') . ')">'
+                                                . h($label) . $arrow . '</a></th>';
+                                        };
+                                        echo $sortHeader('name', 'User'), $sortHeader('role', 'Role'), $sortHeader('status', 'Status'), $sortHeader('joined', 'Joined');
+                                        ?>
                                         <th scope="col">Action</th>
-                                        
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -590,7 +679,7 @@ require __DIR__ . '/header.php';
                                                 <span class="admin-person">
                                                     <span class="admin-person__avatar" aria-hidden="true"><?= h(initials($row['name'])) ?></span>
                                                     <span class="admin-person__text">
-                                                        <span class="admin-person__name"><?= h($row['name']) ?></span>
+                                                        <a class="admin-person__name admin-person__link" href="<?= h(url('admin/user-profile/' . (int) $row['id'])) ?>"><?= h($row['name']) ?></a>
                                                         <span class="admin-person__email"><?= h($row['email']) ?></span>
                                                         <?php if ($row['username'] !== null): ?>
                                                             <span class="admin-person__email">Username: <?= h($row['username']) ?></span>
@@ -601,6 +690,7 @@ require __DIR__ . '/header.php';
                                             <td><span class="admin-chip admin-chip--<?= h($row['role']) ?>"><?= h(ucfirst($row['role'])) ?></span></td>
                                             <td>
                                                 <form class="admin-status-form" method="post">
+                                                    <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
                                                     <input type="hidden" name="action" value="update_status">
                                                     <input type="hidden" name="user_id" value="<?= (int) $row['id'] ?>">
                                                     <label class="admin-sr-only" for="user-status-<?= (int) $row['id'] ?>">Status for <?= h($row['name']) ?></label>
@@ -612,11 +702,14 @@ require __DIR__ . '/header.php';
                                             </td>
                                             <td class="admin-table__date"><?= h(date('j M Y', (int) strtotime($row['created_at']))) ?></td>
                                             <td>
+                                                <div class="admin-actions">
+                                                <a class="admin-btn admin-edit-btn" href="<?= h(url('admin/user-profile/' . (int) $row['id'])) ?>" aria-label="Edit <?= h($row['name']) ?>">Edit</a>
                                                 <form
                                                     method="post"
                                                     class="admin-delete-form"
-                                                    onsubmit = "return confirm('Are you sure you want to delete the user <?= h($row['name']) ?>? This action cannot be undone.')"
+                                                    data-confirm="Are you sure you want to delete the user &quot;<?= h($row['name']) ?>&quot;? This action cannot be undone."
                                                 >
+                                                    <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
                                                     <input type="hidden" name="action" value="delete_user">
                                                     <input type="hidden" name="user_id" value="<?= (int) $row['id'] ?>">
                                                     <button class="admin-btn admin-delete-btn" type="submit" aria-label="Delete user <?= h($row['name']) ?>" title="Delete user">
@@ -625,6 +718,7 @@ require __DIR__ . '/header.php';
 
 
                                                 </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

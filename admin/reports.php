@@ -221,10 +221,7 @@ try {
 
 /* ---------------- CSV download ---------------- */
 if ($exporting && !$loadError) {
-    $safe = static function ($cell): string {
-        $cell = (string) $cell;
-        return ($cell !== '' && strpos("=+-@\t\r", $cell[0]) !== false) ? "'" . $cell : $cell;
-    };
+    $safe = 'csvSafeCell';   // see includes/security.php: a cell that starts with = + - @ is made harmless
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="report-' . $report . '-' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');

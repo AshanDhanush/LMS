@@ -109,6 +109,10 @@ switch ($action) {
             header('Allow: POST');
             send_json(405, ['status' => 'error', 'message' => 'This endpoint only accepts sign-out requests.']);
         }
+        if (!requestIsSameOrigin()) {
+            // Another website must not be able to sign people out by posting a hidden form.
+            send_json(403, ['status' => 'error', 'message' => 'This request could not be verified.']);
+        }
 
         setcookie(JWT_COOKIE, '', [
             'expires' => time() - 3600,

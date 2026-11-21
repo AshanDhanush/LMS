@@ -204,18 +204,19 @@ function cohortParseEmails(string $raw, int $limit = 200): array
 }
 
 /**
- * Enrol students (by email) in a course.
+ * Enrol students (by email) in a course. Stops adding people once the course is full.
  *
  * @param string[] $emails
- * @return array{enrolled:int,already:int,not_found:string[],inactive:string[],ids:int[]}
+ * @return array{enrolled:int,already:int,not_found:string[],inactive:string[],full:string[],ids:int[]}
  *         ids = every student who is enrolled afterwards (new and existing)
  */
 function cohortEnrollByEmail(PDO $pdo, int $courseId, array $emails): array
 {
-    $result = ['enrolled' => 0, 'already' => 0, 'not_found' => [], 'inactive' => [], 'ids' => []];
+    require_once __DIR__ . '/../includes/capacity.php';
 
-    $find   = $pdo->prepare("SELECT id, status FROM users WHERE email = :email AND role = 'student' LIMIT 1");
-    $insert = $pdo->prepare('INSERT IGNORE INTO enrollments (user_id, course_id) VALUES (:user, :course)');
+    $result = ['enrolled' => 0, 'already' => 0, 'not_found' => [], 'inactive' => [], 'full' => [], 'ids' => []];
+
+    $find = $pdo->prepare("SELECT id, status FROM users WHERE email = :email AND role = 'student' LIMIT 1");
 
     foreach ($emails as $email) {
         $find->execute(['email' => $email]);
@@ -230,8 +231,12 @@ function cohortEnrollByEmail(PDO $pdo, int $courseId, array $emails): array
             continue;
         }
 
-        $insert->execute(['user' => (int) $student['id'], 'course' => $courseId]);
-        if ($insert->rowCount() > 0) {
+        $outcome = courseEnrol($pdo, $courseId, (int) $student['id'], false);
+        if ($outcome === 'full') {
+            $result['full'][] = $email;
+            continue;
+        }
+        if ($outcome === 'enrolled') {
             $result['enrolled']++;
         } else {
             $result['already']++;
@@ -258,6 +263,9 @@ function cohortEnrollSummary(array $r): string
     }
     if ($r['inactive']) {
         $parts[] = 'inactive account: ' . implode(', ', array_slice($r['inactive'], 0, 5));
+    }
+    if (!empty($r['full'])) {
+        $parts[] = 'the course is full, so ' . count($r['full']) . ' student(s) were not added';
     }
 
     return $parts ? ucfirst(implode('. ', $parts)) . '.' : 'No valid email addresses were found.';

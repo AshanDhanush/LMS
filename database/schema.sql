@@ -114,6 +114,7 @@ CREATE TABLE `courses` (
   `description` text DEFAULT NULL,
   `thumbnail` varchar(255) DEFAULT NULL,
   `status` enum('draft','pending','published') NOT NULL DEFAULT 'draft',
+  `capacity` int(10) unsigned DEFAULT NULL,
   `submitted_at` datetime DEFAULT NULL,
   `reviewed_by` int(10) unsigned DEFAULT NULL,
   `reviewed_at` datetime DEFAULT NULL,

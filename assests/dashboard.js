@@ -191,11 +191,28 @@ window.addEventListener('pageshow', (event) => {
   if (event.persisted) window.location.reload();
 });
 
-/* Users page: select several users and apply one action to all of them */
-const bulkForm = document.querySelector('[data-bulk-form]');
-if (bulkForm instanceof HTMLFormElement) {
-  const rowBoxes = () => Array.from(document.querySelectorAll('[data-select-row]')).filter((box) => !box.disabled);
-  const selectAll = document.querySelector('[data-select-all]');
+/* Ask before a destructive action: any form with a data-confirm message.
+   The text lives in a data attribute (never inside an inline onsubmit="..." handler), so a name that
+   contains quotes or script can never run as code. */
+document.querySelectorAll('form[data-confirm]').forEach((form) => {
+  form.addEventListener('submit', (event) => {
+    if (!window.confirm(form.dataset.confirm || 'Are you sure?')) event.preventDefault();
+  });
+});
+
+/* Select several rows and apply one action to all of them.
+   A page can have more than one bulk form (for example "remove enrolled students" and "enrol students").
+   Each row checkbox belongs to a form through its form="..." attribute; the select-all box names its form
+   with data-bulk-for="...". Optional attributes on the bulk form:
+     data-confirm-always="Remove {n} student(s)?"   ask every time
+     data-bulk-action (on a <select>)               ask only when the chosen value is "delete" */
+document.querySelectorAll('[data-bulk-form]').forEach((bulkForm) => {
+  if (!(bulkForm instanceof HTMLFormElement)) return;
+
+  const rowBoxes = () => Array.from(document.querySelectorAll('[data-select-row]'))
+    .filter((box) => box.form === bulkForm && !box.disabled);
+  const selectAll = Array.from(document.querySelectorAll('[data-select-all]'))
+    .find((box) => box.dataset.bulkFor === bulkForm.id) || null;
   const submitButton = bulkForm.querySelector('[data-bulk-submit]');
   const countLabel = bulkForm.querySelector('[data-bulk-count]');
   const actionSelect = bulkForm.querySelector('[data-bulk-action]');
@@ -217,15 +234,24 @@ if (bulkForm instanceof HTMLFormElement) {
       refreshBulk();
     });
   }
-  document.querySelectorAll('[data-select-row]').forEach((box) => box.addEventListener('change', refreshBulk));
+  document.querySelectorAll('[data-select-row]').forEach((box) => {
+    if (box.form === bulkForm) box.addEventListener('change', refreshBulk);
+  });
 
   bulkForm.addEventListener('submit', (event) => {
     const chosen = rowBoxes().filter((box) => box.checked).length;
-    if (actionSelect instanceof HTMLSelectElement && actionSelect.value === 'delete') {
+    if (chosen === 0) {
+      event.preventDefault();
+      return;
+    }
+    const always = bulkForm.dataset.confirmAlways;
+    if (always) {
+      if (!window.confirm(always.replace('{n}', String(chosen)))) event.preventDefault();
+    } else if (actionSelect instanceof HTMLSelectElement && actionSelect.value === 'delete') {
       if (!window.confirm('Delete ' + chosen + ' user(s) and everything that belongs to them? This cannot be undone.')) {
         event.preventDefault();
       }
     }
   });
   refreshBulk();
-}
+});

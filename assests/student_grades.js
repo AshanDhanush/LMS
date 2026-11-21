@@ -3,7 +3,7 @@
 (() => {
   'use strict';
 
-  const page = document.querySelector('[data-endpoint]');
+  const page = document.querySelector('main[data-endpoint]');
   if (!page) return;
 
   const status = page.querySelector('[data-status]');

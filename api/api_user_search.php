@@ -33,7 +33,8 @@ try {
          LIMIT 8'
     );
 
-    $term = '%' . $q . '%';
+    // % and _ typed by the admin are searched literally; they are not wildcards.
+    $term = '%' . likeEscape($q) . '%';
 
     $stmt->execute([
         'name' => $term,
