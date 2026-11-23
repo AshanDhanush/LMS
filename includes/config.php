@@ -106,6 +106,34 @@ function dashboardPath(string $role): string
     };
 }
 
+/**
+ * Abort the request and display the corresponding branded error page.
+ *
+ * @param int $code HTTP status code (400, 401, 403, 404, 500, 503)
+ * @param string|null $message Optional custom explanation to display to the user
+ */
+function abort(int $code = 404, ?string $message = null): never
+{
+    http_response_code($code);
+    if ($message !== null && $message !== '') {
+        $GLOBALS['errorMessage'] = $message;
+    }
+
+    $file = dirname(__DIR__) . "/errors/{$code}.php";
+    if (is_file($file)) {
+        require $file;
+        exit;
+    }
+
+    $fallback = dirname(__DIR__) . '/errors/404.php';
+    if (is_file($fallback)) {
+        require $fallback;
+        exit;
+    }
+
+    exit("Error {$code}");
+}
+
 function generateUsername(string $lastName, int $orderNumber): string
 {
     $letters = preg_replace('/[^\p{L}]/u', '', trim($lastName));

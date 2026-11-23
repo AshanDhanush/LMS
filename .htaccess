@@ -54,6 +54,20 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+?)/?$ $1.php [L]
 
+# Route any remaining non-existent page requests to the 404 error page.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php !-f
+RewriteRule ^ errors/404.php [L]
+
+# Custom error documents (served by branded error templates).
+ErrorDocument 400 errors/400.php
+ErrorDocument 401 errors/401.php
+ErrorDocument 403 errors/403.php
+ErrorDocument 404 errors/404.php
+ErrorDocument 500 errors/500.php
+ErrorDocument 503 errors/503.php
+
 # Pages and API answers are never kept by the browser. Without this, Back after signing in shows the
 # sign-in form again, and Back after signing out shows a saved copy of a protected page.
 <IfModule mod_headers.c>
