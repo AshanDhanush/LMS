@@ -257,9 +257,11 @@ function profile_api_upload_avatar(array $user): never
         throw new RuntimeException('The avatar directory could not be created.');
     }
 
-    $filename = bin2hex(random_bytes(16)) . '.' . $allowedImages[$mimeType];
+    $extension = getImageOptimalExtension('webp');
+    $filename = bin2hex(random_bytes(16)) . '.' . $extension;
     $destination = $avatarDirectory . '/' . $filename;
-    if (!move_uploaded_file((string) $upload['tmp_name'], $destination)) {
+
+    if (!compressAndSaveImage((string) $upload['tmp_name'], $destination, 400, 400, 80, $extension)) {
         throw new RuntimeException('The profile image could not be saved.');
     }
 
@@ -267,6 +269,9 @@ function profile_api_upload_avatar(array $user): never
         $avatarPath = 'uploads/avatars/' . $filename;
         $saveAvatar = db()->prepare('UPDATE users SET photo = :photo WHERE id = :id');
         $saveAvatar->execute(['photo' => $avatarPath, 'id' => $user['id']]);
+
+        // Safely remove previous avatar to keep storage clean
+        deleteUploadedImageFile($user['photo'] ?? null, 'uploads/avatars/');
     } catch (Throwable $error) {
         if (is_file($destination)) {
             unlink($destination);

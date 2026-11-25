@@ -417,14 +417,15 @@ if (is_array($upload)) {
             ]);
         }
 
+        $extension = getImageOptimalExtension('webp');
         $filename = bin2hex(random_bytes(16))
             . '.'
-            . $allowedImages[$mimeType];
+            . $extension;
 
         $thumbnailDestination = $thumbnailDirectory . '/' . $filename;
         $thumbnailPath = 'uploads/thumbnails/' . $filename;
 
-        if (!move_uploaded_file($temporaryPath, $thumbnailDestination)) {
+        if (!compressAndSaveImage($temporaryPath, $thumbnailDestination, 1280, 720, 82, $extension)) {
             error_log('Course API could not save the uploaded thumbnail.');
 
             courseApiResponse(500, [

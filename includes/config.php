@@ -377,5 +377,8 @@ function sendMail(string $to, string $subject, string $html): bool
 /* Security headers, same-origin check, validation and CSV helpers (runs sendSecurityHeaders() once) */
 require_once __DIR__ . '/security.php';
 
+/* Image compression service */
+require_once __DIR__ . '/image_service.php';
+
 /* Database connection (includes/db.php), so one require of config.php is enough on a page */
 require_once __DIR__ . '/db.php';
