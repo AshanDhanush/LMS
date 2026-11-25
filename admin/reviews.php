@@ -172,7 +172,10 @@ require __DIR__ . '/header.php';
                                     · <?= (int) $c['quizzes'] ?> quiz<?= (int) $c['quizzes'] === 1 ? '' : 'zes' ?>
                                 </p>
                                 <?php if ((int) $c['lessons'] === 0): ?>
-                                    <p class="admin-alert" role="alert">This course has no lessons, so it cannot be approved yet.</p>
+                                    <div class="admin-alert" role="alert" style="display:flex;align-items:center;gap:10px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                        <span>This course has no lessons, so it cannot be approved yet.</span>
+                                    </div>
                                 <?php else: ?>
                                     <details>
                                         <summary class="admin-person__email">See the lessons</summary>
@@ -191,10 +194,16 @@ require __DIR__ . '/header.php';
                                     <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                     <input type="hidden" name="course_id" value="<?= (int) $c['id'] ?>">
                                     <label for="note-<?= (int) $c['id'] ?>">Note to the instructor <span class="admin-person__email">(required when sending back)</span></label>
-                                    <textarea id="note-<?= (int) $c['id'] ?>" name="note" rows="2" maxlength="1000"></textarea>
+                                    <textarea id="note-<?= (int) $c['id'] ?>" name="note" rows="3" maxlength="1000" placeholder="Write feedback for the instructor explaining what needs to be changed..."></textarea>
                                     <div class="admin-actions">
-                                        <button class="admin-btn" type="submit" name="action" value="approve"<?= (int) $c['lessons'] === 0 ? ' disabled' : '' ?>>Approve and publish</button>
-                                        <button class="admin-btn admin-delete-btn" type="submit" name="action" value="reject">Send back</button>
+                                        <button class="admin-btn admin-btn--primary" type="submit" name="action" value="approve"<?= (int) $c['lessons'] === 0 ? ' disabled' : '' ?>>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            <span>Approve and publish</span>
+                                        </button>
+                                        <button class="admin-btn admin-btn--danger" type="submit" name="action" value="reject">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                                            <span>Send back</span>
+                                        </button>
                                     </div>
                                 </form>
                             </article>

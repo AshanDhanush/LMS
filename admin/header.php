@@ -49,11 +49,18 @@ $adminPageTitle = $adminPageTitle ?? 'Learning Hub Admin';
             <span class="admin-chip admin-chip--primary">Admin</span>
             <form class="admin-user-search" action="<?= h(url('admin/users')) ?>" method="get" role="search" data-user-search-form data-user-search-endpoint="<?= h(url('api/api_user_search.php')) ?>" data-user-profile-url="<?= h(url('admin/user-profile.php')) ?>">
                 <label class="admin-sr-only" for="admin-user-search">Search users by name or email</label>
-                <input id="admin-user-search" type="search" name="q" value="<?= h($headerSearchValue) ?>" placeholder="Find a user..." autocomplete="off" aria-autocomplete="list" aria-controls="admin-user-search-suggestions" aria-expanded="false" data-user-search-input>
-                <button type="submit" aria-label="Search users" title="Search users">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
-                </button>
-                <button type="button" aria-label="Toggle user suggestions" aria-expanded="false" data-user-search-toggle>▼</button>
+                <div class="admin-user-search__wrapper">
+                    <span class="admin-user-search__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </span>
+                    <input id="admin-user-search" type="search" name="q" value="<?= h($headerSearchValue) ?>" placeholder="Search users by name or email..." autocomplete="off" aria-autocomplete="list" aria-controls="admin-user-search-suggestions" aria-expanded="false" data-user-search-input>
+                    <button class="admin-user-search__toggle" type="button" aria-label="Toggle user suggestions" aria-expanded="false" title="Show suggestions" data-user-search-toggle>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <button class="admin-user-search__submit" type="submit" aria-label="Search users" title="Search users">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
                 <ul id="admin-user-search-suggestions" class="user-search-suggestions" role="listbox" hidden data-user-search-suggestions></ul>
             </form>
             <?php require_once dirname(__DIR__) . '/includes/notifications_bell.php'; notificationsBell(); ?>
