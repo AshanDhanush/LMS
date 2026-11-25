@@ -310,6 +310,8 @@ CREATE TABLE `users` (
   `email` varchar(190) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
   `role` enum('admin','instructor','student') NOT NULL DEFAULT 'student',
+  `is_pro` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `pro_purchased_at` datetime DEFAULT NULL,
   `status` enum('active','inactive') NOT NULL DEFAULT 'active',
   `photo` varchar(255) DEFAULT NULL,
   `email_verified_at` datetime DEFAULT NULL,

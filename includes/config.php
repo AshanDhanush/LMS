@@ -18,6 +18,9 @@ define('DB_PASS', envValue('DB_PASS', ''));
 // true on your computer. On Azure we set IS_LOCAL=false.
 define('IS_LOCAL', filter_var(envValue('IS_LOCAL', 'true'), FILTER_VALIDATE_BOOLEAN));
 
+// Pro plan flag: false = Free (manual passwords, no auto-emails), true = Pro (auto-passwords + email credentials)
+define('IS_PRO', filter_var(envValue('IS_PRO', 'false'), FILTER_VALIDATE_BOOLEAN));
+
 
 /* ==========================================================================
    JWT login settings
@@ -207,10 +210,38 @@ function setAuthCookie(int $userId, string $role): void
     ]);
 }
 
+/** Check whether the users table has the is_pro column. */
+function userIsProColumnExists(PDO $pdo): bool
+{
+    static $exists = null;
+    if ($exists === null) {
+        try {
+            $exists = $pdo->query("SHOW COLUMNS FROM users LIKE 'is_pro'")->fetch() !== false;
+        } catch (Throwable) {
+            $exists = false;
+        }
+    }
+    return $exists;
+}
+
+/** Check if the system or the current admin has Pro version active. */
+function isPro(?array $adminUser = null): bool
+{
+    if (defined('IS_PRO') && IS_PRO === true) {
+        return true;
+    }
+
+    if ($adminUser !== null && !empty($adminUser['is_pro'])) {
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * The logged-in user, or null. Role and status come from the DATABASE on every request,
  * so deactivating a user or changing a role takes effect at once.
- * Returns: id, name, email, role, photo
+ * Returns: id, name, email, role, photo, is_pro
  */
 function currentUser(): ?array
 {
@@ -221,12 +252,18 @@ function currentUser(): ?array
     $token   = $_COOKIE[JWT_COOKIE] ?? '';
     $payload = is_string($token) && $token !== '' ? jwtVerify($token) : null;
     if ($payload && isset($payload['sub'])) {
-        $stmt = db()->prepare('SELECT id, name, email, role, photo, status, email_verified_at FROM users WHERE id = ?');
-        $stmt->execute([(int) $payload['sub']]);
-        $row = $stmt->fetch();
-        if ($row && $row['status'] === 'active' && $row['email_verified_at'] !== null) {
-            unset($row['status'], $row['email_verified_at']);
-            $user = $row;
+        try {
+            $pdo = db();
+            $proCol = userIsProColumnExists($pdo) ? ', is_pro' : ', 0 AS is_pro';
+            $stmt = $pdo->prepare("SELECT id, name, email, role, photo, status, email_verified_at{$proCol} FROM users WHERE id = ?");
+            $stmt->execute([(int) $payload['sub']]);
+            $row = $stmt->fetch();
+            if ($row && $row['status'] === 'active' && $row['email_verified_at'] !== null) {
+                unset($row['status'], $row['email_verified_at']);
+                $user = $row;
+            }
+        } catch (Throwable) {
+            $user = null;
         }
     }
     return $user;

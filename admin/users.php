@@ -42,7 +42,7 @@ function sendAccountCredentials(string $name, string $email, string $username, s
     return sendMail($email, 'Your Learning Hub account', $message);
 }
 
-function readUserImportCsv(string $path): array
+function readUserImportCsv(string $path, bool $isPro = false): array
 {
     $handle = fopen($path, 'rb');
     if ($handle === false) {
@@ -56,15 +56,23 @@ function readUserImportCsv(string $path): array
         }
 
         $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
-        $expectedHeaders = ['first name', 'last name', 'email', 'role'];
         $actualHeaders = array_map(
             static fn($header): string => strtolower(trim((string) $header)),
             $headers
         );
-        if ($actualHeaders !== $expectedHeaders) {
-            throw new RuntimeException('The CSV header must contain exactly these columns in order: First name, Last name, email, role.');
+
+        $hasPasswordCol = (count($actualHeaders) === 5 && $actualHeaders[4] === 'password');
+        $isFourCol = (count($actualHeaders) === 4 && $actualHeaders === ['first name', 'last name', 'email', 'role']);
+
+        if (!$isPro && !$hasPasswordCol) {
+            throw new RuntimeException('On the Free plan, the CSV header must contain five columns: First name, Last name, email, role, password.');
         }
 
+        if ($isPro && !$isFourCol && !$hasPasswordCol) {
+            throw new RuntimeException('The CSV header must contain: First name, Last name, email, role (optional 5th column: password).');
+        }
+
+        $expectedCount = $hasPasswordCol ? 5 : 4;
         $rows = [];
         $seenEmails = [];
         $csvRow = 1;
@@ -74,8 +82,8 @@ function readUserImportCsv(string $path): array
                 continue;
             }
 
-            if (count($columns) !== count($expectedHeaders)) {
-                throw new RuntimeException('CSV row ' . $csvRow . ' must contain exactly four columns.');
+            if (count($columns) !== $expectedCount) {
+                throw new RuntimeException('CSV row ' . $csvRow . ' must contain exactly ' . $expectedCount . ' columns.');
             }
 
             foreach ($columns as $column) {
@@ -92,6 +100,7 @@ function readUserImportCsv(string $path): array
             $lastName = trim((string) $columns[1]);
             $email = trim((string) $columns[2]);
             $role = strtolower(trim((string) $columns[3]));
+            $password = $hasPasswordCol ? trim((string) $columns[4]) : null;
             $name = trim($firstName . ' ' . $lastName);
 
             if ($firstName === '' || $lastName === '' || mb_strlen($name, 'UTF-8') > 100) {
@@ -106,6 +115,12 @@ function readUserImportCsv(string $path): array
             if (!in_array($role, ['student', 'instructor', 'admin'], true)) {
                 throw new RuntimeException('CSV row ' . $csvRow . ' must use the student, instructor, or admin role.');
             }
+            if ($hasPasswordCol && (strlen((string) $password) < 8 || strlen((string) $password) > 72)) {
+                throw new RuntimeException('CSV row ' . $csvRow . ' password must be between 8 and 72 characters.');
+            }
+            if (!$isPro && empty($password)) {
+                throw new RuntimeException('CSV row ' . $csvRow . ' requires a password on the Free plan.');
+            }
 
             $emailKey = strtolower($email);
             if (isset($seenEmails[$emailKey])) {
@@ -117,6 +132,7 @@ function readUserImportCsv(string $path): array
                 'last_name' => $lastName,
                 'email' => $email,
                 'role' => $role,
+                'password' => $password,
             ];
         }
 
@@ -130,10 +146,12 @@ function readUserImportCsv(string $path): array
     }
 }
 
+$isPro = isPro($user);
 $formError = '';
 $emailError = '';
 $firstNameError = '';
 $lastNameError = '';
+$passwordError = '';
 $statusError = '';
 $importError = '';
 $importSuccess = '';
@@ -141,6 +159,7 @@ $importEmailFailures = [];
 $formFirstName = '';
 $formLastName = '';
 $formEmail = '';
+$formPassword = '';
 $formRole = 'student';
 $usersError = false;
 $users = [];
@@ -209,7 +228,7 @@ if ($postAction === 'import_csv') {
     } else {
         $pdo = null;
         try {
-            $importRows = readUserImportCsv((string) $upload['tmp_name']);
+            $importRows = readUserImportCsv((string) $upload['tmp_name'], $isPro);
             $pdo = db();
             $pdo->beginTransaction();
 
@@ -237,7 +256,15 @@ if ($postAction === 'import_csv') {
                 } while ($usernameExists);
 
                 $plannedUsernames[strtolower($username)] = true;
-                $password = generateTemporaryPassword();
+
+                if (!empty($importRow['password'])) {
+                    $password = (string) $importRow['password'];
+                } elseif ($isPro) {
+                    $password = generateTemporaryPassword();
+                } else {
+                    throw new RuntimeException('CSV row ' . ($index + 2) . ': password is required on the Free plan.');
+                }
+
                 $insertUser->execute([
                     'name' => $importRow['name'],
                     'username' => $username,
@@ -254,20 +281,24 @@ if ($postAction === 'import_csv') {
             $pdo->commit();
 
             auditLog($pdo, $user, 'user.import', 'user', null, 'Imported ' . count($createdUsers) . ' user(s) from a CSV file',
-                ['count' => count($createdUsers), 'file' => (string) ($upload['name'] ?? ''), 'emails' => implode(', ', array_slice(array_column($createdUsers, 'email'), 0, 50))]);
+                ['count' => count($createdUsers), 'file' => (string) ($upload['name'] ?? ''), 'is_pro' => $isPro, 'emails' => implode(', ', array_slice(array_column($createdUsers, 'email'), 0, 50))]);
 
-            foreach ($createdUsers as $createdUser) {
-                if (!sendAccountCredentials(
-                    $createdUser['name'],
-                    $createdUser['email'],
-                    $createdUser['username'],
-                    $createdUser['password']
-                )) {
-                    $importEmailFailures[] = $createdUser['email'];
+            if ($isPro) {
+                foreach ($createdUsers as $createdUser) {
+                    if (!sendAccountCredentials(
+                        $createdUser['name'],
+                        $createdUser['email'],
+                        $createdUser['username'],
+                        $createdUser['password']
+                    )) {
+                        $importEmailFailures[] = $createdUser['email'];
+                    }
                 }
-            }
 
-            $importSuccess = count($createdUsers) . ' user account(s) were created.';
+                $importSuccess = count($createdUsers) . ' user account(s) were created and emailed their credentials.';
+            } else {
+                $importSuccess = count($createdUsers) . ' user account(s) were created with the passwords from your CSV. (Credentials were not emailed because email delivery requires the Pro plan).';
+            }
         } catch (PDOException $error) {
             if ($pdo instanceof PDO && $pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -294,6 +325,7 @@ if ($postAction === 'create_user') {
     $formLastName = trim(is_string($_POST['last_name'] ?? null) ? $_POST['last_name'] : '');
     $formEmail = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
     $formRole = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
+    $formPassword = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
     $formName = trim($formFirstName . ' ' . $formLastName);
 
     if (($problem = plainTextProblem($formFirstName, 'First name', 100)) !== null) {
@@ -306,6 +338,10 @@ if ($postAction === 'create_user') {
         $emailError = 'Enter a valid email address.';
     } elseif (!in_array($formRole, ['student', 'instructor', 'admin'], true)) {
         $formError = 'Choose a valid user role.';
+    } elseif (!$isPro && (strlen($formPassword) < 8 || strlen($formPassword) > 72)) {
+        $passwordError = 'Password is required on the Free plan (between 8 and 72 characters).';
+    } elseif ($isPro && $formPassword !== '' && (strlen($formPassword) < 8 || strlen($formPassword) > 72)) {
+        $passwordError = 'Password must be between 8 and 72 characters if provided.';
     } else {
         try {
             $findEmail = db()->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
@@ -320,7 +356,11 @@ if ($postAction === 'create_user') {
                     $findUsername->execute(['username' => $username]);
                 } while ($findUsername->fetchColumn() !== false);
 
-                $password = generateTemporaryPassword();
+                // If Pro and no password provided, auto-generate temporary password. Otherwise use manual password.
+                $password = ($isPro && $formPassword === '')
+                    ? generateTemporaryPassword()
+                    : $formPassword;
+
                 $insertUser = db()->prepare(
                     'INSERT INTO users (name, username, email, password_hash, role, status, email_verified_at)
                      VALUES (:name, :username, :email, :password_hash, :role, \'active\', CURRENT_TIMESTAMP)'
@@ -333,9 +373,15 @@ if ($postAction === 'create_user') {
                     'role' => $formRole,
                 ]);
                 $newUserId = (int) db()->lastInsertId();
-                auditLog(db(), $user, 'user.create', 'user', $newUserId, 'Created ' . $formRole . ' account for ' . $formName, ['email' => $formEmail, 'username' => $username, 'role' => $formRole]);
-                $emailSent = sendAccountCredentials($formName, $formEmail, $username, $password);
-                redirect('admin/users?created=1' . ($emailSent ? '' : '&email_failed=1'));
+                auditLog(db(), $user, 'user.create', 'user', $newUserId, 'Created ' . $formRole . ' account for ' . $formName, ['email' => $formEmail, 'username' => $username, 'role' => $formRole, 'is_pro' => $isPro]);
+
+                if ($isPro) {
+                    $emailSent = sendAccountCredentials($formName, $formEmail, $username, $password);
+                    redirect('admin/users?created=1' . ($emailSent ? '' : '&email_failed=1'));
+                } else {
+                    // Free plan: no email delivery
+                    redirect('admin/users?created=1&no_email=1');
+                }
             }
         } catch (PDOException $error) {
             if ($error->getCode() === '23000') {
@@ -506,7 +552,7 @@ require __DIR__ . '/header.php';
                 </section>
 
                 <?php if (isset($_GET['created'])): ?>
-                    <p class="admin-alert admin-alert--success" role="status">The user account was created.</p>
+                    <p class="admin-alert admin-alert--success" role="status">The user account was created.<?= isset($_GET['no_email']) ? ' (Manual password saved. Credentials were not emailed because the system is on the Free plan).' : (isset($_GET['email_failed']) ? '' : ' Credentials have been emailed.') ?></p>
                 <?php endif; ?>
                 <?php if (isset($_GET['email_failed'])): ?>
                     <p class="admin-alert" role="alert">The account was created, but the credentials email could not be sent. Check the mail configuration and contact the user.</p>
@@ -537,6 +583,11 @@ require __DIR__ . '/header.php';
                 <section class="admin-card admin-user-form-card" aria-labelledby="create-user-title">
                     <div class="admin-card__head">
                         <h2 id="create-user-title">Add a user</h2>
+                        <?php if ($isPro): ?>
+                            <span class="admin-chip admin-chip--success">Pro Plan &bull; Auto-Email Active</span>
+                        <?php else: ?>
+                            <span class="admin-chip admin-chip--warning">Free Plan &bull; Manual Password</span>
+                        <?php endif; ?>
                     </div>
                     <?php if ($formError !== ''): ?>
                         <p class="admin-alert" role="alert"><?= h($formError) ?></p>
@@ -566,6 +617,17 @@ require __DIR__ . '/header.php';
                             <?php endif; ?>
                         </div>
                         <div class="admin-user-form__field">
+                            <label for="password">Password <?= !$isPro ? '<span class="admin-required" aria-hidden="true">*</span>' : '<span class="admin-card__note" style="margin:0 0 0 4px;">(Optional — leave blank to auto-generate)</span>' ?></label>
+                            <input id="password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" value="<?= h($formPassword) ?>" <?= !$isPro ? 'required' : '' ?> placeholder="<?= !$isPro ? 'Enter a password (min. 8 characters)' : 'Auto-generated temporary password if empty' ?>">
+                            <?php if ($passwordError !== ''): ?>
+                                <p class="admin-user-form__field-error" role="alert"><?= h($passwordError) ?></p>
+                            <?php elseif (!$isPro): ?>
+                                <p class="admin-card__note">Free plan: manual password is required. (Credentials will not be emailed).</p>
+                            <?php else: ?>
+                                <p class="admin-card__note">Pro plan: leave blank to auto-generate and email credentials to the user.</p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="admin-user-form__field">
                             <label for="role">Role</label>
                             <select id="role" name="role" required>
                                 <option value="student" <?= $formRole === 'student' ? 'selected' : '' ?>>Student</option>
@@ -580,8 +642,17 @@ require __DIR__ . '/header.php';
                 <section class="admin-card admin-user-form-card" aria-labelledby="import-users-title">
                     <div class="admin-card__head">
                         <h2 id="import-users-title">Add users from CSV</h2>
+                        <?php if ($isPro): ?>
+                            <span class="admin-chip admin-chip--success">Pro Plan &bull; Auto-Email Active</span>
+                        <?php else: ?>
+                            <span class="admin-chip admin-chip--warning">Free Plan &bull; Password Column Required</span>
+                        <?php endif; ?>
                     </div>
-                    <p>Upload a CSV with these headings: <strong>First name, Last name, email, role</strong>. Roles must be student, instructor, or admin. A username and temporary 8-character password will be generated for each user and emailed to them.</p>
+                    <?php if ($isPro): ?>
+                        <p>Upload a CSV with these headings: <strong>First name, Last name, email, role</strong> (optional 5th column: <strong>password</strong>). Roles must be student, instructor, or admin. A username and temporary 8-character password will be auto-generated and emailed to each user. <a href="<?= h(url('assests/templates/users_template_pro.csv')) ?>" download>Download Pro CSV template</a></p>
+                    <?php else: ?>
+                        <p>Upload a CSV with these headings: <strong>First name, Last name, email, role, password</strong>. Roles must be student, instructor, or admin. Passwords must be at least 8 characters. (Free plan: automatic email delivery is disabled; accounts will be created with the passwords in your CSV). <a href="<?= h(url('assests/templates/users_template_free.csv')) ?>" download>Download Free CSV template</a></p>
+                    <?php endif; ?>
                     <form class="admin-user-form" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?= h($bulkCsrfToken) ?>">
                         <input type="hidden" name="action" value="import_csv">
